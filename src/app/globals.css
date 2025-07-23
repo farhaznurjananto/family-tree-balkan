@@ -3,40 +3,251 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  padding: 0;
 }
 
 html,
 body {
   max-width: 100vw;
+  height: 100vh;
   overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
   margin: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+h1 {
+  margin: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* TREE COMPONENT */
+._lypp {
+  width: 100%;
+  height: 100%;
+}
+
+/* LOGIN PAGE */
+/* LOGIN PAGE */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.login-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-form h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.login-form .message {
+  color: red;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.login-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-form button:hover {
+  background-color: #005dc1;
+}
+
+.login-form .toggle {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.login-form .toggle span {
+  color: #0070f3;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* DIALOG FORM */
+/* Dialog overlay background */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Dialog box */
+.dialog-box {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Form elements */
+.dialog-form label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.dialog-form input,
+.dialog-form textarea {
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.dialog-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Action buttons */
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.dialog-actions button {
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dialog-actions button[type="submit"] {
+  background-color: #2563eb;
+  color: white;
+}
+
+.dialog-actions button[type="button"] {
+  background-color: #e5e7eb;
+}
+
+/* VIEW PAGE */
+.view-container {
+  display: flex;
+  align-items: center;
+  height: 100vh;
+  justify-content: center;
+}
+
+/* TEXTAREA FIELD */
+.textarea-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 3px;
+}
+
+.textarea-field textarea {
+  color: #757575; /* Warna teks default */
+  width: 100%;
+  border: 1px solid #ccc; /* Warna abu-abu */
+  border-radius: 4px;
+  padding: 8px;
+  resize: vertical;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+  font-size: 16px;
+  resize: none;
+}
+
+.textarea-field textarea:focus {
+  border-color: #039be5; /* Border jadi biru */
+  outline: none; /* Hilangkan outline default */
+}
+
+.textarea-field textarea::placeholder {
+  color: #acacac; /* Ganti dengan warna yang kamu inginkan */
+  opacity: 1; /* Untuk memastikan warnanya terlihat jelas */
+}
+
+/* INPUT FILE FIELD */
+.input-file-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 3px;
+  height: 50px;
+}
+
+.input-file-field input[type="file"] {
+  padding: 12px;
+  border: 2px solid #ccc;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: #acacac;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.input-file-field input[type="file"]:focus {
+  outline: none;
+  border-color: #4a90e2;
+  background-color: #fff;
+}
+
+.input-file-field input[type="file"]::file-selector-button {
+  display: none;
 }
