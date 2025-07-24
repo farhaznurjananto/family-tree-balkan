@@ -6,7 +6,7 @@ interface ITree {
 }
 
 interface NodeData {
-  id: number;
+  id: string;
   pids?: string | string[] | number | number[];
   gender: "male" | "female";
   name: string;

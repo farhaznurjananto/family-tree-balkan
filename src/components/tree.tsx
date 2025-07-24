@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FamilyTree from "@balkangraph/familytree.js";
 import supabase from "@/libs/db";
 import Dialog from "@/components/dialog";
-import { ITree } from "@/types/tree";
+import { ITree, NodeData } from "@/types/tree";
 import { useRouter } from "next/navigation";
 import { convertXmlToJson } from "@/libs/convertJson";
 
@@ -51,8 +51,8 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const treeRef = useRef<FamilyTree | null>(null);
   const [dialogStatus, setDialogStatus] = useState(false);
   const router = useRouter();
-
-  const [fullNameInputId, setFullNameInputId] = useState<string | null>(null);
+  const [idNode, setIdNode] = useState<string | null>(null);
+  const xmlSnapshotRef = useRef<string | null>(null);
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -77,51 +77,54 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }));
   }, []);
 
-  const handleUploadImage = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const imageTree = event.target.files?.[0];
-    if (!imageTree) return;
+  const handleUploadImage = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const imageTree = event.target.files?.[0];
+      if (!imageTree) return;
 
-    const fileName = `iamge-${Date.now()}.png`;
-    const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
-      cacheControl: "3600",
-      upsert: false,
-    });
+      const fileName = `iamge-${Date.now()}.png`;
+      const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-    if (error) {
-      console.error("Upload failed:", error.message);
-    } else {
-      console.log("Upload success:", data);
-    }
-
-    if (data) {
-      // const publicURL = supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
-      if (!treeRef.current) return;
-
-      try {
-        // alert("Tree saved successfully");
-        // console.log(treeRef.current);
-        treeRef.current.on("updated", function (sender, args) {
-          const editedNodeId = args.node.id;
-          console.log("Editing node ID:", editedNodeId);
-        });
-        // const wholeTreeData = treeRef.current.getXML();
-        // const jsonNodes = convertXmlToJson(wholeTreeData);
-        // const { data, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-
-        // if (error) {
-        //   console.error("Error saving tree:", error);
-        //   alert("Error saving tree");
-        // } else {
-        //   console.log("Tree saved successfully:", data);
-        //   alert("Tree saved successfully");
-        // }
-      } catch (error) {
-        alert("Error saving tree");
-        console.error("Error saving tree:", error);
+      if (error) {
+        console.error("Upload failed:", error.message);
+      } else {
+        console.log("Upload success:", data);
       }
-      // console.log(publicURL);
-    }
-  }, []);
+
+      if (data) {
+        const urlImage = await supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
+
+        if (idNode && treeRef.current) {
+          // Ambil node lama
+          const oldNode = treeRef.current.get(idNode);
+
+          if (!oldNode) {
+            console.warn("Node tidak ditemukan:", idNode);
+            return;
+          }
+
+          // Gabungkan data lama dengan photo baru
+          treeRef.current.updateNode({
+            ...oldNode,
+            photo: urlImage,
+          });
+
+          xmlSnapshotRef.current = treeRef.current.getXML();
+          const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+          const { data: updateResult, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+          if (error) {
+            console.error("Error saving tree:", error);
+          } else {
+            console.log("Tree saved successfully:", updateResult);
+          }
+        }
+      }
+    },
+    [dataTree.id, idNode]
+  );
 
   const handleDialogOpen = useCallback((status: boolean) => {
     setDialogStatus(status);
@@ -146,15 +149,15 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     if (!treeRef.current) return;
 
     try {
-      const wholeTreeData = treeRef.current.getXML();
-      const jsonNodes = convertXmlToJson(wholeTreeData);
-      const { data, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+      xmlSnapshotRef.current = treeRef.current.getXML();
+      const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
 
       if (error) {
         console.error("Error saving tree:", error);
         alert("Error saving tree");
       } else {
-        console.log("Tree saved successfully:", data);
+        console.log("Tree saved successfully:", updatedData);
         alert("Tree saved successfully");
       }
     } catch (error) {
@@ -169,15 +172,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
 
     const el = document.getElementById("tree");
     if (!el) return;
-
-    // const form = document.querySelector("form.bft-edit-form"); // atau pakai selector lain
-
-    // const fullNameLabel = form?.querySelector('label[for^="_"][for]'); // cari label yang punya attribute for
-
-    // if (fullNameLabel) {
-    //   const inputId = fullNameLabel.getAttribute("for");
-    //   console.log("ID input Full Name:", inputId);
-    // }
 
     const importCSVHandler = () => {
       if (treeRef.current) treeRef.current.importCSV();
@@ -254,21 +248,35 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     });
     // if (!treeRef.current) return;
     // Jalankan ketika form edit muncul
-    treeRef.current.on("update", (sender, args) => {
-      // setTimeout(() => {
-      // const form = document.querySelector("form.bft-edit-form");
-      // if (!form) return;
-      // const fullNameLabel = form.querySelector('label[for^="_"][for]');
-      // if (fullNameLabel) {
-      //   const inputId = fullNameLabel.getAttribute("for");
-      //   console.log("ID input Full Name:", inputId);
-      // } else {
-      //   console.warn("Label Full Name tidak ditemukan");
-      // }
-      // }, 2000); // delay agar form sempat dirender
-      // console.log(treeRef.current?.config.);
+
+    treeRef.current.on("click", (sender, args) => {
+      setIdNode(args.node.id);
+      console.log(treeRef.current?.get(idNode!));
+      // console.log(treeRef.current?.nodes[idNode!]);
+      // console.log(treeRef.current);
+      // console.log(args.node.id);
     });
-  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage]);
+
+    // treeRef.current.on("updated", (sender, args) => {
+    //   const node = treeRef.current?.get(idNode!) as NodeData;
+
+    //   if (idNode && treeRef.current) {
+    //     // Ambil node lama
+    //     const oldNode = treeRef.current.get(idNode);
+
+    //     if (!oldNode) {
+    //       console.warn("Node tidak ditemukan:", idNode);
+    //       return;
+    //     }
+
+    //     // Gabungkan data lama dengan photo baru
+    //     treeRef.current.updateNode({
+    //       ...oldNode,
+    //       photo: node.photo,
+    //     });
+    //   }
+    // });
+  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage, idNode]);
 
   return (
     <>
