@@ -38,8 +38,8 @@ FamilyTree.elements.myInputFile = function (data, editElement, minWidth, readOnl
 
   return {
     html: `<div class="input-file-field">
-              <input ${rDisabledAttr} placeholder="Note" type="file" accept="image/*" ${rOnlyAttr}
-                id="${id}" name="${id}" style="width: 100%; height: 100px;" 
+              <input ${rDisabledAttr} placeholder="Select Image" type="file" accept="image/*" ${rOnlyAttr}
+                id="${id}" name="${id}" style="width: 100%; height: 40px;" 
                 data-binding="${editElement.binding}" onchange="handleUploadImage(event)" />
            </div>`,
     id: id,
@@ -53,7 +53,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const router = useRouter();
   const [idNode, setIdNode] = useState<string | null>(null);
   const xmlSnapshotRef = useRef<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -78,54 +78,84 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }));
   }, []);
 
-  const handleUploadImage = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const imageTree = event.target.files?.[0];
-      if (!imageTree) return;
+  const saveTreeData = useCallback(async () => {
+    if (!treeRef.current) return;
 
-      const fileName = `iamge-${Date.now()}.png`;
-      const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+    try {
+      xmlSnapshotRef.current = treeRef.current.getXML();
+      const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+      const { data: updateResult, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
 
       if (error) {
-        console.error("Upload failed:", error.message);
+        console.error("Error saving tree:", error);
+        throw error;
       } else {
-        console.log("Upload success:", data);
+        console.log("Tree saved successfully:", updateResult);
+        return updateResult;
       }
+    } catch (error) {
+      console.error("Error in saveTreeData:", error);
+      throw error;
+    }
+  }, [dataTree.id]);
 
-      if (data) {
-        const imageUrlPath = await supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
-        setImageUrl(imageUrlPath);
+  const handleUploadImage = useCallback(
+    async (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const imageTree = target.files?.[0];
+      if (!imageTree || !idNode) return;
 
-        if (idNode && treeRef.current) {
-          // Ambil node lama
-          const oldNode = treeRef.current.get(idNode);
+      try {
+        const fileName = `image-${Date.now()}-${imageTree.name}`;
+        const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-          if (!oldNode) {
-            console.warn("Node tidak ditemukan:", idNode);
-            return;
-          }
+        if (error) {
+          console.error("Upload failed:", error.message);
+          alert("Image upload failed: " + error.message);
+          return;
+        }
 
-          // Gabungkan data lama dengan photo baru
-          treeRef.current.updateNode({
-            ...oldNode,
-            photo: imageUrlPath,
-          });
+        if (data) {
+          const imageUrlPath = supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
+          console.log("Image uploaded successfully:", imageUrlPath);
 
-          xmlSnapshotRef.current = treeRef.current.getXML();
-          const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-          const { data: updateResult, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-          if (error) {
-            console.error("Error saving tree:", error);
-          } else {
-            console.log("Tree saved successfully:", updateResult);
+          // Store the uploaded image URL
+          setUploadedImageUrl(imageUrlPath);
+
+          if (treeRef.current) {
+            // Get the current node data
+            const oldNode = treeRef.current.get(idNode);
+
+            if (!oldNode) {
+              console.warn("Node not found:", idNode);
+              return;
+            }
+
+            // Update the node with the new photo URL
+            const updatedNode = {
+              ...oldNode,
+              photo: imageUrlPath,
+            };
+
+            treeRef.current.updateNode(updatedNode);
+
+            // Save the updated tree data
+            await saveTreeData();
+            alert("Image uploaded and saved successfully!");
           }
         }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        alert("Error uploading image");
       }
+
+      // Clear the file input
+      target.value = "";
     },
-    [dataTree.id, idNode]
+    [idNode, saveTreeData]
   );
 
   const handleDialogOpen = useCallback((status: boolean) => {
@@ -143,34 +173,25 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     } else {
       localStorage.clear();
       sessionStorage.clear();
-      router.push("/auth"); // Kembali ke halaman login
+      router.push("/auth");
     }
   }, [router]);
 
   const handleSaveTree = useCallback(async () => {
-    if (!treeRef.current) return;
-
     try {
-      xmlSnapshotRef.current = treeRef.current.getXML();
-      const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-
-      if (error) {
-        console.error("Error saving tree:", error);
-        alert("Error saving tree");
-      } else {
-        console.log("Tree saved successfully:", updatedData);
-        alert("Tree saved successfully");
-      }
+      await saveTreeData();
+      alert("Tree saved successfully");
     } catch (error) {
       alert("Error saving tree");
       console.error("Error saving tree:", error);
     }
-  }, [dataTree.id]);
+  }, [saveTreeData]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    (window as unknown as Window & { handleUploadImage: typeof handleUploadImage }).handleUploadImage = handleUploadImage;
+
+    // Make handleUploadImage available globally
+    (window as any).handleUploadImage = handleUploadImage;
 
     const el = document.getElementById("tree");
     if (!el) return;
@@ -180,7 +201,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     };
 
     treeRef.current = new FamilyTree(el, {
-      // template: "customCard",
       nodes: dataTree.file,
       nodeBinding,
       menu: {
@@ -239,48 +259,37 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
           { type: "textbox", label: "Occupation", binding: "occupation" },
-          { type: "myInputFile", label: "Photo URL", binding: "photo" },
+          { type: "myInputFile", label: "Photo", binding: "photo" },
           { type: "myTextArea", label: "Note", binding: "note" },
         ],
         buttons: {
           pdf: null,
           share: null,
         },
+        
       },
     });
-    // if (!treeRef.current) return;
-    // Jalankan ketika form edit muncul
 
-    const node = treeRef.current?.get(idNode!) as NodeData;
-
-
+    // Set up event handlers
     treeRef.current.on("click", (sender, args) => {
       setIdNode(args.node.id);
+      console.log("Node clicked:", args.node.id);
     });
 
-    treeRef.current.on("update", (sender, args) => {
-      if (idNode && treeRef.current) {
-        // Ambil node lama
-        const oldNode = treeRef.current.get(idNode);
+    // Remove the problematic update event handler that was overriding the photo URL
+    // The photo update is now handled directly in handleUploadImage
 
-        if (!oldNode) {
-          console.warn("Node tidak ditemukan:", idNode);
-          return;
-        }
-
-        // Gabungkan data lama dengan photo baru
-        treeRef.current.updateNode({
-          ...oldNode,
-          photo: "imageUrl",
-        });
+    return () => {
+      // Cleanup
+      if ((window as any).handleUploadImage) {
+        delete (window as any).handleUploadImage;
       }
-    });
-  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage, idNode]);
+    };
+  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, handleDialogOpen, handleLogout, handleUploadImage]);
 
   return (
     <>
       <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
-
       <div id="tree" className="w-full" />
     </>
   );
