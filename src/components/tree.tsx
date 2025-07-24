@@ -12,6 +12,9 @@ interface FamilyTreeComponentProps {
   dataTree: ITree;
 }
 
+// Store untuk menyimpan foto yang akan diupload
+let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string } } = {};
+
 FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly) {
   const id = FamilyTree.elements.generateId();
   let value = data[editElement.binding];
@@ -33,17 +36,57 @@ FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly
 
 FamilyTree.elements.myInputFile = function (data, editElement, minWidth, readOnly) {
   const id = FamilyTree.elements.generateId();
+  let currentPhotoUrl = data[editElement.binding] || "";
   const rOnlyAttr = readOnly ? "readonly" : "";
   const rDisabledAttr = readOnly ? "disabled" : "";
 
+  const changePhotoButton = currentPhotoUrl ? 
+    `<button type="button" onclick="document.getElementById('${id}').click()" 
+             style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-top: 5px;">
+       Ganti Foto
+     </button>` : '';
+
   return {
     html: `<div class="input-file-field">
-              <input ${rDisabledAttr} placeholder="Note" type="file" accept="image/*" ${rOnlyAttr}
-                id="${id}" name="${id}" style="width: 100%; height: 100px;" 
-                data-binding="${editElement.binding}" onchange="handleUploadImage(event)" />
+              ${currentPhotoUrl ? `<div style="margin-bottom: 10px;">
+                <img src="${currentPhotoUrl}" style="max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px;" alt="Current photo" />
+                <p style="font-size: 12px; color: #666; margin: 5px 0;">Current photo</p>
+                ${changePhotoButton}
+              </div>` : ''}
+              <input ${rDisabledAttr} placeholder="Select new image" type="file" accept="image/*" ${rOnlyAttr}
+                id="${id}" name="${id}" style="width: 100%; height: 40px; ${currentPhotoUrl ? 'display: none;' : ''}" 
+                data-binding="${editElement.binding}" onchange="handleFileSelect(event)" />
+              <input type="hidden" id="${id}_url" data-binding="${editElement.binding}" value="${currentPhotoUrl}" />
+              ${!currentPhotoUrl ? `<label for="${id}" style="display: block; padding: 10px; border: 2px dashed #ccc; text-align: center; cursor: pointer; border-radius: 4px;">
+                Click to select image
+              </label>` : ''}
            </div>`,
     id: id,
-    value: "", // karena file tidak punya value
+    value: currentPhotoUrl,
+  };
+};
+
+FamilyTree.elements.myChangePhotoButton = function (data, editElement, minWidth, readOnly) {
+  const id = FamilyTree.elements.generateId();
+  const currentPhotoUrl = data["photo"] || "";
+  
+  if (readOnly || !currentPhotoUrl) {
+    return {
+      html: "",
+      id: id,
+      value: ""
+    };
+  }
+
+  return {
+    html: `<div style="margin-top: -40px; margin-left: 120px;">
+              <button type="button" onclick="document.querySelector('input[data-binding=photo]').click()" 
+                     style="background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                Ganti Foto
+              </button>
+           </div>`,
+    id: id,
+    value: ""
   };
 };
 
@@ -53,7 +96,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const router = useRouter();
   const [idNode, setIdNode] = useState<string | null>(null);
   const xmlSnapshotRef = useRef<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -65,7 +108,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const nodeBinding = useMemo(
     () => ({
       field_0: "name",
-      img_0: "photo",
+      img_0: "photo",  // pastikan ini sesuai dengan binding field foto
     }),
     []
   );
@@ -78,55 +121,100 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }));
   }, []);
 
-  const handleUploadImage = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const imageTree = event.target.files?.[0];
-      if (!imageTree) return;
+  // Function untuk menghapus foto lama dari storage
+  const deleteOldPhoto = useCallback(async (photoUrl: string) => {
+    if (!photoUrl || !photoUrl.includes('image-tree')) return;
+    
+    try {
+      // Extract file path from URL, handle URL parameters
+      const urlParts = photoUrl.split('?')[0].split('/'); // Remove parameters first
+      const fileName = urlParts[urlParts.length - 1];
+      
+      console.log('Attempting to delete file:', fileName); // Debug log
+      
+      const { error } = await supabase.storage
+        .from('image-tree')
+        .remove([fileName]);
+        
+      if (error) {
+        console.error('Error deleting old photo:', error);
+      } else {
+        console.log('Old photo deleted successfully:', fileName);
+      }
+    } catch (error) {
+      console.error('Error deleting old photo:', error);
+    }
+  }, []);
 
-      const fileName = `iamge-${Date.now()}.png`;
-      const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
+  // Function untuk upload foto ke storage
+  const uploadImageToStorage = useCallback(async (file: File, nodeId: string) => {
+    try {
+      const fileName = `image-${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage.from("image-tree").upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
       });
 
       if (error) {
-        console.error("Upload failed:", error.message);
-      } else {
-        console.log("Upload success:", data);
+        throw new Error(error.message);
       }
 
       if (data) {
         const imageUrlPath = await supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
-        setImageUrl(imageUrlPath);
-
-        if (idNode && treeRef.current) {
-          // Ambil node lama
-          const oldNode = treeRef.current.get(idNode);
-
-          if (!oldNode) {
-            console.warn("Node tidak ditemukan:", idNode);
-            return;
-          }
-
-          // Gabungkan data lama dengan photo baru
-          treeRef.current.updateNode({
-            ...oldNode,
-            photo: imageUrlPath,
-          });
-
-          xmlSnapshotRef.current = treeRef.current.getXML();
-          const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-          const { data: updateResult, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-          if (error) {
-            console.error("Error saving tree:", error);
-          } else {
-            console.log("Tree saved successfully:", updateResult);
-          }
-        }
+        return imageUrlPath;
       }
-    },
-    [dataTree.id, idNode]
-  );
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error;
+    }
+  }, []);
+
+  // Function untuk handle file selection (tidak langsung upload)
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !idNode) return;
+  
+    // Get current photo URL from hidden input (lebih akurat)
+    const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+    const oldPhotoUrl = hiddenInput?.value || "";
+  
+    // Store file untuk diupload nanti saat save
+    pendingImageUploads[idNode] = {
+      file,
+      oldPhotoUrl: oldPhotoUrl || undefined
+    };
+  
+    console.log(`File selected for node ${idNode}:`, file.name);
+    console.log(`Old photo URL to delete:`, oldPhotoUrl); // Debug log
+  
+    // Preview image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      
+      // Update preview image in form
+      const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
+      if (imgElement) {
+        imgElement.src = result;
+      }
+      
+      // Show change photo button and hide file input
+      const fileInput = event.target;
+      fileInput.style.display = 'none';
+      
+      // Add change photo button if not exists
+      const container = fileInput.closest('.input-file-field');
+      if (container && !container.querySelector('button')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Ganti Foto';
+        button.style.cssText = 'background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-top: 5px;';
+        button.onclick = () => fileInput.click();
+        container.appendChild(button);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [idNode]);
 
   const handleDialogOpen = useCallback((status: boolean) => {
     setDialogStatus(status);
@@ -143,7 +231,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     } else {
       localStorage.clear();
       sessionStorage.clear();
-      router.push("/auth"); // Kembali ke halaman login
+      router.push("/auth");
     }
   }, [router]);
 
@@ -153,7 +241,10 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     try {
       xmlSnapshotRef.current = treeRef.current.getXML();
       const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+      const { data: updatedData, error } = await supabase
+        .from("trees")
+        .update({ file: jsonNodes })
+        .eq("id", dataTree.id);
 
       if (error) {
         console.error("Error saving tree:", error);
@@ -168,9 +259,51 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }
   }, [dataTree.id]);
 
+  // Process pending image uploads when form is saved
+  const processPendingUploads = useCallback(async (nodeData: any) => {
+    const nodeId = nodeData.id;
+    const pendingUpload = pendingImageUploads[nodeId];
+    
+    if (!pendingUpload) return nodeData;
+
+    setIsUploading(true);
+    
+    try {
+      // Upload new image
+      const newImageUrl = await uploadImageToStorage(pendingUpload.file, nodeId);
+      
+      // Delete old image if exists
+      if (pendingUpload.oldPhotoUrl) {
+        await deleteOldPhoto(pendingUpload.oldPhotoUrl);
+      }
+      
+      // Update node data with new image URL
+      nodeData.photo = newImageUrl;
+      
+      // Remove from pending uploads
+      delete pendingImageUploads[nodeId];
+      
+      console.log(`Image uploaded successfully for node ${nodeId}:`, newImageUrl);
+      
+    } catch (error) {
+      console.error("Error processing image upload:", error);
+      alert("Error uploading image: " + (error as Error).message);
+      // Keep old photo on error
+      if (pendingUpload.oldPhotoUrl) {
+        nodeData.photo = pendingUpload.oldPhotoUrl;
+      }
+    } finally {
+      setIsUploading(false);
+    }
+    
+    return nodeData;
+  }, [uploadImageToStorage, deleteOldPhoto]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    (window as unknown as Window & { handleUploadImage: typeof handleUploadImage }).handleUploadImage = handleUploadImage;
+    
+    // Set global function untuk file selection
+    (window as unknown as Window & { handleFileSelect: typeof handleFileSelect }).handleFileSelect = handleFileSelect;
 
     const el = document.getElementById("tree");
     if (!el) return;
@@ -180,7 +313,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     };
 
     treeRef.current = new FamilyTree(el, {
-      // template: "customCard",
       nodes: dataTree.file,
       nodeBinding,
       menu: {
@@ -239,7 +371,8 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
           { type: "textbox", label: "Occupation", binding: "occupation" },
-          { type: "myInputFile", label: "Photo URL", binding: "photo" },
+          { type: "myInputFile", label: "Photo", binding: "photo" },
+          { type: "myChangePhotoButton", label: "", binding: "changePhoto" },
           { type: "myTextArea", label: "Note", binding: "note" },
         ],
         buttons: {
@@ -248,38 +381,69 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
         },
       },
     });
-    // if (!treeRef.current) return;
-    // Jalankan ketika form edit muncul
 
-    const node = treeRef.current?.get(idNode!) as NodeData;
-
-
+    // Event handler untuk click node
     treeRef.current.on("click", (sender, args) => {
       setIdNode(args.node.id);
     });
 
-    treeRef.current.on("update", (sender, args) => {
-      if (idNode && treeRef.current) {
-        // Ambil node lama
-        const oldNode = treeRef.current.get(idNode);
-
-        if (!oldNode) {
-          console.warn("Node tidak ditemukan:", idNode);
-          return;
+    // Handle form submission - process pending uploads saat Save and Close
+    treeRef.current.on("update", async (sender, args) => {
+      if (args.updateNodesData && args.updateNodesData.length > 0) {
+        // Process each node that has pending image uploads
+        for (let i = 0; i < args.updateNodesData.length; i++) {
+          const nodeData = args.updateNodesData[i];
+          args.updateNodesData[i] = await processPendingUploads(nodeData);
         }
-
-        // Gabungkan data lama dengan photo baru
-        treeRef.current.updateNode({
-          ...oldNode,
-          photo: "imageUrl",
-        });
+        
+        // Save updated tree to database after all uploads are complete
+        try {
+          xmlSnapshotRef.current = treeRef.current?.getXML() || '';
+          const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+          const { data: updateResult, error: dbError } = await supabase
+            .from("trees")
+            .update({ file: jsonNodes })
+            .eq("id", dataTree.id);
+            
+          if (dbError) {
+            console.error("Error saving tree:", dbError);
+            alert("Error menyimpan ke database");
+          } else {
+            console.log("Tree saved successfully:", updateResult);
+          }
+        } catch (error) {
+          console.error("Error saving tree:", error);
+          alert("Error menyimpan tree");
+        }
       }
     });
-  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage, idNode]);
+
+    return () => {
+      // Cleanup
+      if (treeRef.current) {
+        treeRef.current = null;
+      }
+      // Clear pending uploads
+      pendingImageUploads = {};
+    };
+  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, handleDialogOpen, handleLogout, handleFileSelect, processPendingUploads]);
 
   return (
     <>
-      <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
+      <Dialog 
+        status={dialogStatus} 
+        id={treeMetadata.id} 
+        name={treeMetadata.name} 
+        description={treeMetadata.description} 
+        handleDialogClose={handleDialogClose} 
+        onUpdateSuccess={handleUpdateSuccess} 
+      />
+
+      {isUploading && (
+        <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Uploading image...
+        </div>
+      )}
 
       <div id="tree" className="w-full" />
     </>
