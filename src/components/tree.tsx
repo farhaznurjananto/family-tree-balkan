@@ -53,6 +53,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const router = useRouter();
   const [idNode, setIdNode] = useState<string | null>(null);
   const xmlSnapshotRef = useRef<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -95,7 +96,8 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
       }
 
       if (data) {
-        const urlImage = await supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
+        const imageUrlPath = await supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
+        setImageUrl(imageUrlPath);
 
         if (idNode && treeRef.current) {
           // Ambil node lama
@@ -109,7 +111,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           // Gabungkan data lama dengan photo baru
           treeRef.current.updateNode({
             ...oldNode,
-            photo: urlImage,
+            photo: imageUrlPath,
           });
 
           xmlSnapshotRef.current = treeRef.current.getXML();
@@ -249,33 +251,30 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     // if (!treeRef.current) return;
     // Jalankan ketika form edit muncul
 
+    const node = treeRef.current?.get(idNode!) as NodeData;
+
+
     treeRef.current.on("click", (sender, args) => {
       setIdNode(args.node.id);
-      console.log(treeRef.current?.get(idNode!));
-      // console.log(treeRef.current?.nodes[idNode!]);
-      // console.log(treeRef.current);
-      // console.log(args.node.id);
     });
 
-    // treeRef.current.on("updated", (sender, args) => {
-    //   const node = treeRef.current?.get(idNode!) as NodeData;
+    treeRef.current.on("update", (sender, args) => {
+      if (idNode && treeRef.current) {
+        // Ambil node lama
+        const oldNode = treeRef.current.get(idNode);
 
-    //   if (idNode && treeRef.current) {
-    //     // Ambil node lama
-    //     const oldNode = treeRef.current.get(idNode);
+        if (!oldNode) {
+          console.warn("Node tidak ditemukan:", idNode);
+          return;
+        }
 
-    //     if (!oldNode) {
-    //       console.warn("Node tidak ditemukan:", idNode);
-    //       return;
-    //     }
-
-    //     // Gabungkan data lama dengan photo baru
-    //     treeRef.current.updateNode({
-    //       ...oldNode,
-    //       photo: node.photo,
-    //     });
-    //   }
-    // });
+        // Gabungkan data lama dengan photo baru
+        treeRef.current.updateNode({
+          ...oldNode,
+          photo: "imageUrl",
+        });
+      }
+    });
   }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage, idNode]);
 
   return (
