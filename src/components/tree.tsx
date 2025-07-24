@@ -2,89 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FamilyTree from "@balkangraph/familytree.js";
-import { XMLParser } from "fast-xml-parser";
 import supabase from "@/libs/db";
 import Dialog from "@/components/dialog";
 import { ITree } from "@/types/tree";
 import { useRouter } from "next/navigation";
-
-interface NodeData {
-  id: number;
-  pids?: string | string[] | number | number[];
-  gender: "male" | "female";
-  name: string;
-  photo?: string;
-  birthDate?: string;
-  deathDate?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  occupation?: string;
-  note?: string;
-  mid?: number;
-  fid?: number;
-}
+import { convertXmlToJson } from "@/libs/convertJson";
 
 interface FamilyTreeComponentProps {
   dataTree: ITree;
 }
-
-FamilyTree.templates.customCard = Object.assign({}, FamilyTree.templates.tommy);
-FamilyTree.templates.customCard.size = [150, 200];
-
-FamilyTree.templates.customCard.node = `
-  <rect x="0" y="0" width="150" height="200" rx="10" ry="10" fill="#4D4D4D" stroke="#aeaeae" stroke-width="1"></rect>
-`;
-
-FamilyTree.templates.customCard_male = Object.assign({}, FamilyTree.templates.customCard);
-FamilyTree.templates.customCard_male.node = `
-  <rect x="0" y="0" width="150" height="200" rx="10" ry="10" fill="#039be5" stroke="#aeaeae" stroke-width="1"></rect>
-`;
-
-FamilyTree.templates.customCard_female = Object.assign({}, FamilyTree.templates.customCard);
-FamilyTree.templates.customCard_female.node = `
-  <rect x="0" y="0" width="150" height="200" rx="10" ry="10" fill="#FF46A3" stroke="#aeaeae" stroke-width="1"></rect>
-`;
-
-FamilyTree.templates.customCard.defs = "";
-
-FamilyTree.templates.customCard.ripple = {
-  radius: 100,
-  color: "#e6e6e6",
-  rect: undefined,
-};
-
-FamilyTree.templates.customCard.img_0 =
-  '<clipPath id="ulaImg">' + '<circle cx="100" cy="150" r="40"></circle>' + "</clipPath>" + '<image preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg)" xlink:href="{val}" x="60" y="110" width="80" height="80">' + "</image>";
-
-FamilyTree.templates.customCard.field_0 = '<text style="font-size: 24px;" fill="#ffffff" data-text-overflow="multiline" x="100" y="90" text-anchor="middle">{val}</text>';
-
-FamilyTree.templates.customCard.link = '<path stroke="#686868" stroke-width="1px" fill="none" data-l-id="[{id}][{child-id}]" d="M{xa},{ya} C{xb},{yb} {xc},{yc} {xd},{yd}" />';
-
-FamilyTree.templates.customCard.nodeMenuButton =
-  '<g style="cursor:pointer;" transform="matrix(1,0,0,1,93,15)" data-ctrl-n-menu-id="{id}">' +
-  '<rect x="-4" y="-10" fill="#000000" fill-opacity="0" width="22" height="22">' +
-  "</rect>" +
-  '<line x1="0" y1="0" x2="0" y2="10" stroke-width="2" stroke="rgb(255, 202, 40)" />' +
-  '<line x1="7" y1="0" x2="7" y2="10" stroke-width="2" stroke="rgb(255, 202, 40)" />' +
-  '<line x1="14" y1="0" x2="14" y2="10" stroke-width="2" stroke="rgb(255, 202, 40)" />' +
-  "</g>";
-
-FamilyTree.templates.customCard.menuButton =
-  '<div style="position:absolute;right:{p}px;top:{p}px; width:40px;height:50px;cursor:pointer;" data-ctrl-menu="">' +
-  '<hr style="background-color: rgb(255, 202, 40); height: 3px; border: none;">' +
-  '<hr style="background-color: rgb(255, 202, 40); height: 3px; border: none;">' +
-  '<hr style="background-color: rgb(255, 202, 40); height: 3px; border: none;">' +
-  "</div>";
-
-FamilyTree.templates.customCard.pointer =
-  '<g data-pointer="pointer" transform="matrix(0,0,0,0,100,100)">><g transform="matrix(0.3,0,0,0.3,-17,-17)">' +
-  '<polygon fill="rgb(255, 202, 40)" points="53.004,173.004 53.004,66.996 0,120" />' +
-  '<polygon fill="rgb(255, 202, 40)" points="186.996,66.996 186.996,173.004 240,120" />' +
-  '<polygon fill="rgb(255, 202, 40)" points="66.996,53.004 173.004,53.004 120,0" />' +
-  '<polygon fill="rgb(255, 202, 40)" points="120,240 173.004,186.996 66.996,186.996" />' +
-  '<circle fill="rgb(255, 202, 40)" cx="120" cy="120" r="30" />' +
-  "</g></g>";
 
 FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly) {
   const id = FamilyTree.elements.generateId();
@@ -107,20 +33,17 @@ FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly
 
 FamilyTree.elements.myInputFile = function (data, editElement, minWidth, readOnly) {
   const id = FamilyTree.elements.generateId();
-  let value = data[editElement.binding];
-  if (value == undefined) value = "";
-  if (readOnly && !value) {
-    return {
-      html: "",
-    };
-  }
   const rOnlyAttr = readOnly ? "readonly" : "";
   const rDisabledAttr = readOnly ? "disabled" : "";
+
   return {
     html: `<div class="input-file-field">
-                      <input ${rDisabledAttr} placeholder="Note" type="file" accept="image/*" ${rOnlyAttr} id="${id}" name="${id}" style="width: 100%;height: 100px;" data-binding="${editElement.binding}">${value}</input></div>`,
+              <input ${rDisabledAttr} placeholder="Note" type="file" accept="image/*" ${rOnlyAttr}
+                id="${id}" name="${id}" style="width: 100%; height: 100px;" 
+                data-binding="${editElement.binding}" onchange="handleUploadImage(event)" />
+           </div>`,
     id: id,
-    value: value,
+    value: "", // karena file tidak punya value
   };
 };
 
@@ -128,6 +51,8 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const treeRef = useRef<FamilyTree | null>(null);
   const [dialogStatus, setDialogStatus] = useState(false);
   const router = useRouter();
+
+  const [fullNameInputId, setFullNameInputId] = useState<string | null>(null);
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -152,6 +77,52 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }));
   }, []);
 
+  const handleUploadImage = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const imageTree = event.target.files?.[0];
+    if (!imageTree) return;
+
+    const fileName = `iamge-${Date.now()}.png`;
+    const { data, error } = await supabase.storage.from("image-tree").upload(fileName, imageTree, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+    if (error) {
+      console.error("Upload failed:", error.message);
+    } else {
+      console.log("Upload success:", data);
+    }
+
+    if (data) {
+      // const publicURL = supabase.storage.from("image-tree").getPublicUrl(data.path).data.publicUrl;
+      if (!treeRef.current) return;
+
+      try {
+        // alert("Tree saved successfully");
+        // console.log(treeRef.current);
+        treeRef.current.on("updated", function (sender, args) {
+          const editedNodeId = args.node.id;
+          console.log("Editing node ID:", editedNodeId);
+        });
+        // const wholeTreeData = treeRef.current.getXML();
+        // const jsonNodes = convertXmlToJson(wholeTreeData);
+        // const { data, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
+        // if (error) {
+        //   console.error("Error saving tree:", error);
+        //   alert("Error saving tree");
+        // } else {
+        //   console.log("Tree saved successfully:", data);
+        //   alert("Tree saved successfully");
+        // }
+      } catch (error) {
+        alert("Error saving tree");
+        console.error("Error saving tree:", error);
+      }
+      // console.log(publicURL);
+    }
+  }, []);
+
   const handleDialogOpen = useCallback((status: boolean) => {
     setDialogStatus(status);
   }, []);
@@ -165,6 +136,8 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     if (error) {
       alert("Logout gagal: " + error.message);
     } else {
+      localStorage.clear();
+      sessionStorage.clear();
       router.push("/auth"); // Kembali ke halaman login
     }
   }, [router]);
@@ -173,7 +146,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     if (!treeRef.current) return;
 
     try {
-      // alert("Saving tree");
       const wholeTreeData = treeRef.current.getXML();
       const jsonNodes = convertXmlToJson(wholeTreeData);
       const { data, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
@@ -191,109 +163,21 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }
   }, [dataTree.id]);
 
-  const convertXmlToJson = (xmlString: string) => {
-    const parser = new XMLParser({
-      ignoreAttributes: false, // Baca atribut XML
-      attributeNamePrefix: "", // Tanpa prefix
-      parseAttributeValue: true, // Parse atribut jadi tipe yang tepat
-      parseTagValue: true, // Parse tag values dengan strnum
-      numberParseOptions: {
-        // Opsi parsing angka
-        hex: false, // Jangan parse hex
-        leadingZeros: false, // Jangan parse leading zeros sebagai octal
-        eNotation: true, // Parse scientific notation
-      },
-      isArray: (name, jpath) => {
-        // Kontrol array parsing
-        if (jpath === "nodes.node") return true;
-        return false;
-      },
-    });
-
-    try {
-      const jsonData = parser.parse(xmlString);
-      const nodesArray = Array.isArray(jsonData.nodes.node) ? jsonData.nodes.node : [jsonData.nodes.node];
-
-      // Konversi sesuai dengan interface NodeData
-      const formattedNodes: NodeData[] = nodesArray.map((node: NodeData) => {
-        const formattedNode: Partial<NodeData> = {
-          id: node.id,
-          name: node.name,
-          gender: node.gender,
-        };
-
-        // Handle semua field optional sesuai interface
-        if (node.pids !== undefined) {
-          // Perbaikan: Handle pids baik sebagai array maupun string dengan koma
-          if (Array.isArray(node.pids)) {
-            formattedNode.pids = node.pids;
-          } else if (typeof node.pids === "string") {
-            // Jika string dengan koma, split menjadi array dan trim whitespace
-            formattedNode.pids = node.pids
-              .split(",")
-              .map((pid: string) => pid.trim())
-              .filter((pid: string) => pid !== "");
-          } else {
-            // Jika single value bukan string
-            formattedNode.pids = [node.pids];
-          }
-        }
-
-        if (node.photo !== undefined) {
-          formattedNode.photo = node.photo;
-        }
-
-        if (node.birthDate !== undefined) {
-          formattedNode.birthDate = node.birthDate;
-        }
-
-        if (node.deathDate !== undefined) {
-          formattedNode.deathDate = node.deathDate;
-        }
-
-        if (node.address !== undefined) {
-          formattedNode.address = node.address;
-        }
-
-        if (node.phone !== undefined) {
-          formattedNode.phone = node.phone;
-        }
-
-        if (node.email !== undefined) {
-          formattedNode.email = node.email;
-        }
-
-        if (node.occupation !== undefined) {
-          formattedNode.occupation = node.occupation;
-        }
-
-        if (node.note !== undefined) {
-          formattedNode.note = node.note;
-        }
-
-        if (node.mid !== undefined) {
-          formattedNode.mid = node.mid;
-        }
-
-        if (node.fid !== undefined) {
-          formattedNode.fid = node.fid;
-        }
-
-        return formattedNode as NodeData;
-      });
-
-      return formattedNodes;
-    } catch (error) {
-      console.error("Error parsing XML:", error);
-      return [];
-    }
-  };
-
   useEffect(() => {
     if (typeof window === "undefined") return;
+    (window as unknown as Window & { handleUploadImage: typeof handleUploadImage }).handleUploadImage = handleUploadImage;
 
     const el = document.getElementById("tree");
     if (!el) return;
+
+    // const form = document.querySelector("form.bft-edit-form"); // atau pakai selector lain
+
+    // const fullNameLabel = form?.querySelector('label[for^="_"][for]'); // cari label yang punya attribute for
+
+    // if (fullNameLabel) {
+    //   const inputId = fullNameLabel.getAttribute("for");
+    //   console.log("ID input Full Name:", inputId);
+    // }
 
     const importCSVHandler = () => {
       if (treeRef.current) treeRef.current.importCSV();
@@ -368,7 +252,23 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
         },
       },
     });
-  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout]);
+    // if (!treeRef.current) return;
+    // Jalankan ketika form edit muncul
+    treeRef.current.on("update", (sender, args) => {
+      // setTimeout(() => {
+      // const form = document.querySelector("form.bft-edit-form");
+      // if (!form) return;
+      // const fullNameLabel = form.querySelector('label[for^="_"][for]');
+      // if (fullNameLabel) {
+      //   const inputId = fullNameLabel.getAttribute("for");
+      //   console.log("ID input Full Name:", inputId);
+      // } else {
+      //   console.warn("Label Full Name tidak ditemukan");
+      // }
+      // }, 2000); // delay agar form sempat dirender
+      // console.log(treeRef.current?.config.);
+    });
+  }, [dataTree.file, dataTree.id, nodeBinding, handleSaveTree, dialogStatus, handleDialogOpen, handleLogout, handleUploadImage]);
 
   return (
     <>
