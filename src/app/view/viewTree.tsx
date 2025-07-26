@@ -1,57 +1,105 @@
 import React, { Component, RefObject } from 'react';
 import FamilyTree from "@balkangraph/familytree.js";
-
-// Interface untuk node data
-interface FamilyNode {
-    id: string;
-    name: string;
-    photo?: string;
-    gender: 'male' | 'female';
-    birthDate?: string;
-    deathDate?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-    phone?: string;
-    mid?: string; // Mother ID
-    fid?: string; // Father ID
-    pids?: string[]; // Partner IDs
-}
+import { NodeData } from '@/types/tree';
 
 // Props interface
 interface TreeProps {
-    nodes: FamilyNode[];
+    nodes: NodeData[];
+    treeName?: string;
 }
 
 // State interface
 interface TreeState {
-    selectedNode: FamilyNode | null;
+    selectedNode: NodeData | null;
     sidebarOpen: boolean;
+    isMobile: boolean;
 }
 
 export default class Tree extends Component<TreeProps, TreeState> {
-    private divRef: RefObject<HTMLDivElement>;
-    private family: any; // FamilyTree instance
+    private divRef: RefObject<HTMLDivElement | null>;
+    private family: any;
 
     constructor(props: TreeProps) {
         super(props);
         this.divRef = React.createRef<HTMLDivElement>();
         this.state = {
             selectedNode: null,
-            sidebarOpen: false
+            sidebarOpen: false,
+            isMobile: false
         };
     }
 
+    // Check if device is mobile
+    checkIsMobile = (): boolean => {
+        return window.innerWidth <= 768;
+    };
+
+    // Handle window resize
+    handleResize = (): void => {
+        const isMobile = this.checkIsMobile();
+        if (this.state.isMobile !== isMobile) {
+            this.setState({ isMobile });
+        }
+    };
+
     shouldComponentUpdate(nextProps: TreeProps, nextState: TreeState): boolean {
-        // Update jika sidebar state berubah atau props nodes berubah
-        return this.state.sidebarOpen !== nextState.sidebarOpen || 
-               this.state.selectedNode !== nextState.selectedNode ||
-               this.props.nodes !== nextProps.nodes;
+        return this.state.sidebarOpen !== nextState.sidebarOpen ||
+            this.state.selectedNode !== nextState.selectedNode ||
+            this.state.isMobile !== nextState.isMobile ||
+            this.props.nodes !== nextProps.nodes ||
+            this.props.treeName !== nextProps.treeName;
     }
 
     componentDidMount(): void {
-        // Definisi template kustom dengan ukuran gambar yang disesuaikan
-        FamilyTree.templates.base.defs = 
+        // Set initial mobile state
+        this.setState({ isMobile: this.checkIsMobile() });
+        
+        // Add resize listener
+        window.addEventListener('resize', this.handleResize);
+
+        if (!this.divRef.current) {
+            console.error('Div reference is null');
+            return;
+        }
+
+        // Add custom CSS for search bar positioning
+        // const style = document.createElement('style');
+        // style.textContent = `
+        //     .bft-search {
+        //         position: absolute !important;
+        //         top: 20px !important;
+        //         right: 20px !important;
+        //         left: auto !important;
+        //         z-index: 999 !important;
+        //         width: 200px !important;
+        //     }
+            
+        //     @media screen and (max-width: 768px) {
+        //         .bft-search {
+        //             top: 70px !important;
+        //             right: 20px !important;
+        //             width: 160px !important;
+        //         }
+        //     }
+            
+        //     .bft-search input {
+        //         background-color: rgba(15, 15, 17, 0.9) !important;
+        //         border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        //         border-radius: 8px !important;
+        //         color: #F8F8F8 !important;
+        //         padding: 8px 12px !important;
+        //         font-size: 14px !important;
+        //     }
+            
+        //     .bft-search input::placeholder {
+        //         color: rgba(248, 248, 248, 0.6) !important;
+        //     }
+        // `;
+        // document.head.appendChild(style);
+
+        // Template definitions remain the same
+        FamilyTree.SEARCH_PLACEHOLDER = "CARI";
+        FamilyTree.templates.base.defs =
             `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
             <g id="base_node_menu" style="cursor:pointer;">
                 <rect x="0" y="0" fill="transparent" width="22" height="22"></rect>
@@ -69,122 +117,167 @@ export default class Tree extends Component<TreeProps, TreeState> {
             </g>            
             <g id="base_up">
                 <circle cx="15" cy="15" r="15" fill="#fff" stroke="#aeaeae" stroke-width="1"></circle>
-                ${FamilyTree.icon.ft(20,20,'#aeaeae', 5, 5)}
+                ${FamilyTree.icon.ft(20, 20, '#aeaeae', 5, 5)}
             </g>
             <clipPath id="base_img_0">
                 <rect id="base_img_0_stroke" stroke-width="3" x="8" y="8" rx="10" ry="10" width="168" height="232"></rect>
             </clipPath>`;
 
-        // Template untuk node utama (tanpa menu buttons) - ukuran 184x270
+        // Template configurations
         FamilyTree.templates.myTemplate = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate.size = [184, 270];
-        // Hilangkan menu buttons
         FamilyTree.templates.myTemplate.nodeTreeMenuButton = '';
         FamilyTree.templates.myTemplate.nodeMenuButton = '';
         FamilyTree.templates.myTemplate.nodeTreeMenuCloseButton = '';
-        
+
         FamilyTree.templates.myTemplate_male = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate_male.size = [184, 270];
-        // Hilangkan menu buttons untuk male
         FamilyTree.templates.myTemplate_male.nodeTreeMenuButton = '';
         FamilyTree.templates.myTemplate_male.nodeMenuButton = '';
         FamilyTree.templates.myTemplate_male.nodeTreeMenuCloseButton = '';
-        
+
         FamilyTree.templates.myTemplate_female = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate_female.size = [184, 270];
-        // Hilangkan menu buttons untuk female
         FamilyTree.templates.myTemplate_female.nodeTreeMenuButton = '';
         FamilyTree.templates.myTemplate_female.nodeMenuButton = '';
         FamilyTree.templates.myTemplate_female.nodeTreeMenuCloseButton = '';
 
-        // Node styling berdasarkan gender
-        FamilyTree.templates.myTemplate_male.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>`;
-        FamilyTree.templates.myTemplate_female.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+        // Node styling
+        FamilyTree.templates.myTemplate_male.node =
+            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#FFFFFF" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+        FamilyTree.templates.myTemplate_female.node =
+            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#FFFFFF" stroke="#aeaeae" rx="15" ry="15"></rect>`;
 
-        // Field styling untuk nama - posisi disesuaikan untuk ukuran 184x270
-        FamilyTree.templates.myTemplate.field_0 = 
-        FamilyTree.templates.myTemplate_male.field_0 =
-        FamilyTree.templates.myTemplate_female.field_0 =
+        // Field styling
+        FamilyTree.templates.myTemplate.field_0 =
+            FamilyTree.templates.myTemplate_male.field_0 =
+            FamilyTree.templates.myTemplate_female.field_0 =
             `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
-        // Image styling - foto dengan ukuran yang disesuaikan (168x232)
+        // Image styling
         FamilyTree.templates.myTemplate.img_0 =
-        FamilyTree.templates.myTemplate_male.img_0 =
-        FamilyTree.templates.myTemplate_female.img_0 =
+            FamilyTree.templates.myTemplate_male.img_0 =
+            FamilyTree.templates.myTemplate_female.img_0 =
             `<use xlink:href="#base_img_0_stroke" />
-            <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="8" width="168" height="232"></image>`;
+            <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="8" width="168" height="232" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
+            <g style="display:none" class="default-avatar">
+                <rect x="8" y="8" width="168" height="232" fill="#3f3f46" rx="10" ry="10"></rect>
+                <g transform="translate(92, 124)">
+                    <path d="M-24 -16C-24 -27.0457 -15.0457 -36 -4 -36C7.0457 -36 16 -27.0457 16 -16C16 -4.9543 7.0457 4 -4 4C-15.0457 4 -24 -4.9543 -24 -16Z" 
+                          fill="#9CA3AF" stroke="#9CA3AF" stroke-width="2"/>
+                    <path d="M-40 44V36C-40 24.9543 -31.0457 16 -20 16H12C23.0457 16 32 24.9543 32 36V44" 
+                          fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+            </g>`;
 
-        // Template untuk placeholder nodes - ukuran 184x270
-        FamilyTree.templates.mother = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.mother.up = '';
-        FamilyTree.templates.mother.size = [184, 270];
-        FamilyTree.templates.mother.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Mother</text>`;
+        // Placeholder templates
+        const placeholderTemplates = ['mother', 'father', 'husband', 'son', 'daughter', 'wife'];
+        const placeholderColors = {
+            mother: '#60EDF7',
+            father: '#7DACFF',
+            husband: '#7DACFF',
+            son: '#7DACFF',
+            daughter: '#60EDF7',
+            wife: '#60EDF7'
+        };
 
-        FamilyTree.templates.father = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.father.up = '';
-        FamilyTree.templates.father.size = [184, 270];
-        FamilyTree.templates.father.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Father</text>`;
-
-        FamilyTree.templates.husband = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.husband.up = '';
-        FamilyTree.templates.husband.size = [184, 270];
-        FamilyTree.templates.husband.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Husband</text>`;
-
-        FamilyTree.templates.son = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.son.up = '';
-        FamilyTree.templates.son.size = [184, 270];
-        FamilyTree.templates.son.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Son</text>`;
-
-        FamilyTree.templates.daughter = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.daughter.up = '';
-        FamilyTree.templates.daughter.size = [184, 270];
-        FamilyTree.templates.daughter.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Daughter</text>`;
-
-        FamilyTree.templates.wife = Object.assign({}, FamilyTree.templates.base);
-        FamilyTree.templates.wife.up = '';
-        FamilyTree.templates.wife.size = [184, 270];
-        FamilyTree.templates.wife.node = 
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
-            <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add Wife</text>`;
-
-        // Inisialisasi FamilyTree dengan konfigurasi dari template
-        this.family = new FamilyTree(this.divRef.current, {
-            mode: 'dark',
-            nodeTreeMenu: false, // Nonaktifkan tree menu
-            nodeMouseClick: FamilyTree.action.none, // Nonaktifkan default click action
-            template: 'myTemplate',
-            nodeBinding: {
-                field_0: "name",
-                img_0: "photo"  // Menggunakan 'photo' sesuai dengan data
-            },
-            nodes: this.props.nodes
+        placeholderTemplates.forEach(templateName => {
+            FamilyTree.templates[templateName] = Object.assign({}, FamilyTree.templates.base);
+            FamilyTree.templates[templateName].up = '';
+            FamilyTree.templates[templateName].size = [184, 270];
+            FamilyTree.templates[templateName].node =
+                `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="${placeholderColors[templateName as keyof typeof placeholderColors]}" stroke="#aeaeae" rx="15" ry="15"></rect>
+                <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add ${templateName.charAt(0).toUpperCase() + templateName.slice(1)}</text>`;
         });
 
-        // Event listener untuk node click
+        // Initialize FamilyTree
+        this.family = new FamilyTree(this.divRef.current, {
+            mode: 'dark',
+            nodeTreeMenu: false,
+            nodeMouseClick: FamilyTree.action.none,
+            template: 'myTemplate',
+            searchDisplayField: 'name',
+            searchFields: ['name'],
+            enableSearch: true,
+            nodeBinding: {
+                field_0: "name",
+                img_0: "photo"
+            },
+            nodes: this.props.nodes.map(node => ({
+                ...node,
+                photo: node.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIzMiIgdmlld0JveD0iMCAwIDE2OCAyMzIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjMyIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTE2KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K'
+            }))
+        });
+
+        // Event listener for node click
         this.family.on('click', (sender: any, args: any) => {
             if (args.node) {
-                const nodeData: FamilyNode = this.family.get(args.node.id);
+                const nodeData: NodeData = this.family.get(args.node.id);
+                console.log('Node clicked:', nodeData); // Debug log
                 this.setState({
                     selectedNode: nodeData,
                     sidebarOpen: true
                 });
             }
         });
+
+        // Alternative event listener for mobile touch
+        this.family.on('nodeclick', (sender: any, args: any) => {
+            if (args.node) {
+                const nodeData: NodeData = this.family.get(args.node.id);
+                console.log('Node touched:', nodeData); // Debug log
+                this.setState({
+                    selectedNode: nodeData,
+                    sidebarOpen: true
+                });
+            }
+        });
+
+        // Add direct click handlers after render
+        setTimeout(() => {
+            const nodes = this.divRef.current?.querySelectorAll('g[node-id]');
+            nodes?.forEach((node) => {
+                node.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeId = (node as Element).getAttribute('node-id');
+                    if (nodeId) {
+                        const nodeData: NodeData = this.family.get(nodeId);
+                        if (nodeData) {
+                            console.log('Direct click on node:', nodeData);
+                            this.setState({
+                                selectedNode: nodeData,
+                                sidebarOpen: true
+                            });
+                        }
+                    }
+                });
+                
+                // Add touch handler for mobile
+                node.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const nodeId = (node as Element).getAttribute('node-id');
+                    if (nodeId) {
+                        const nodeData: NodeData = this.family.get(nodeId);
+                        if (nodeData) {
+                            console.log('Touch on node:', nodeData);
+                            this.setState({
+                                selectedNode: nodeData,
+                                sidebarOpen: true
+                            });
+                        }
+                    }
+                });
+            });
+        }, 1000);
     }
 
-    // Helper function untuk format tanggal
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', this.handleResize);
+    }
+
+    // Helper functions remain the same
     formatDate = (dateString: string): string => {
         if (!dateString) return 'Tidak diketahui';
         const date = new Date(dateString);
@@ -195,7 +288,6 @@ export default class Tree extends Component<TreeProps, TreeState> {
         });
     }
 
-    // Helper function untuk menghitung umur
     calculateAge = (birthDate?: string, deathDate?: string): string => {
         if (!birthDate) return 'Tidak diketahui';
         const birth = new Date(birthDate);
@@ -204,7 +296,6 @@ export default class Tree extends Component<TreeProps, TreeState> {
         return age > 0 ? `${age} tahun` : 'Tidak diketahui';
     }
 
-    // Helper function untuk mendapatkan nama berdasarkan ID
     getNameById = (id: string): string => {
         const node = this.props.nodes.find(n => n.id === id);
         return node ? node.name : `ID: ${id}`;
@@ -217,275 +308,256 @@ export default class Tree extends Component<TreeProps, TreeState> {
         });
     }
 
-    render(): JSX.Element {
-        const { selectedNode, sidebarOpen } = this.state;
-        
+    render() {
+        const { selectedNode, sidebarOpen, isMobile } = this.state;
+        const { treeName } = this.props;
+
+        // Responsive dimensions
+        const sidebarWidth = isMobile ? '100%' : '645px';
+        const sidebarLeft = sidebarOpen ? '0' : (isMobile ? '-100%' : '-645px');
+        const treeMarginLeft = sidebarOpen ? (isMobile ? '0' : '400px') : '0';
+        const headerLeft = sidebarOpen ? (isMobile ? '20px' : '665px') : '20px';
+
         return (
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div style={{ 
+                position: 'relative', 
+                width: '100%', 
+                height: '100vh', 
+                fontFamily: 'Poppins, sans-serif',
+                overflow: 'hidden',
+                zIndex: 1002,
+            }}>
+                {/* Tree Name Header */}
+                <div style={{
+                    display: isMobile ? 'none' : 'block',
+                    position: 'absolute',
+                    top: '20px',
+                    left: headerLeft,
+                    zIndex: 1001,
+                    color: '#F8F8F8',
+                    fontSize: isMobile ? '16px' : '24px',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    transition: 'left 0.3s ease-in-out',
+                    pointerEvents: 'none',
+                    padding: isMobile ? '8px 12px' : '12px 20px',
+                    backgroundColor: 'transparent',
+                    borderRadius: '8px',
+                    maxWidth: isMobile ? '200px' : '400px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    border: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+                }}>
+                    {treeName || 'Family Tree'}
+                </div>
+
                 {/* Sidebar */}
                 <div style={{
-                    position: 'absolute',
-                    left: sidebarOpen ? '0' : '-400px',
+                    position: 'fixed',
+                    left: sidebarLeft,
                     top: '0',
-                    width: '400px',
-                    height: '100%',
-                    backgroundColor: '#2d3748',
+                    width: sidebarWidth,
+                    height: '100vh',
+                    backgroundColor: '#0F0F11',
                     color: 'white',
-                    padding: '20px',
+                    padding: isMobile ? '20px 16px' : '32px',
                     boxShadow: '2px 0 10px rgba(0,0,0,0.3)',
                     transition: 'left 0.3s ease-in-out',
-                    zIndex: 1000,
-                    overflowY: 'auto'
+                    zIndex: isMobile ? 1002 : 1000,
+                    overflowY: 'auto',
+                    overflowX: 'hidden'
                 }}>
                     {selectedNode && (
                         <>
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
                                 alignItems: 'center',
                                 marginBottom: '20px'
                             }}>
-                                <h3 style={{ margin: 0 }}>Detail Informasi</h3>
-                                <button 
+                                <button
                                     onClick={this.closeSidebar}
                                     style={{
                                         background: 'none',
-                                        border: 'none',
+                                        width: isMobile ? '40px' : '48px',
+                                        height: isMobile ? '40px' : '48px',
                                         color: 'white',
-                                        fontSize: '20px',
-                                        cursor: 'pointer'
+                                        fontSize: isMobile ? '28px' : '32px',
+                                        cursor: 'pointer',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ffffff',
+                                        padding: '10px',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        transition: 'background-color 0.3s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        const target = e.target as HTMLButtonElement;
+                                        target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const target = e.target as HTMLButtonElement;
+                                        target.style.backgroundColor = 'transparent';
                                     }}
                                 >
                                     ×
                                 </button>
                             </div>
-                            
-                            {/* Foto - ukuran disesuaikan dengan rasio 184x270 */}
-                            {selectedNode.photo && (
-                                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                                    <img 
-                                        src={selectedNode.photo} 
+
+                            {/* Photo */}
+                            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                                {selectedNode.photo ? (
+                                    <img
+                                        src={selectedNode.photo}
                                         alt={selectedNode.name}
                                         style={{
-                                            width: '168px',
-                                            height: '232px',
+                                            width: isMobile ? '120px' : '165px',
+                                            height: isMobile ? '160px' : '220px',
                                             objectFit: 'cover',
-                                            borderRadius: '10px',
-                                            border: `3px solid ${selectedNode.gender === 'male' ? '#7DACFF' : '#60EDF7'}`
+                                            borderRadius: '16px',
                                         }}
                                     />
-                                </div>
-                            )}
-                            
-                            {/* Informasi Detail */}
-                            <div style={{ marginBottom: '15px' }}>
-                                <strong>Nama:</strong>
-                                <div style={{ 
-                                    marginTop: '5px', 
-                                    padding: '8px', 
-                                    backgroundColor: '#4a5568',
-                                    borderRadius: '5px' 
-                                }}>
-                                    {selectedNode.name}
-                                </div>
-                            </div>
-                            
-                            <div style={{ marginBottom: '15px' }}>
-                                <strong>Gender:</strong>
-                                <div style={{ 
-                                    marginTop: '5px', 
-                                    padding: '8px', 
-                                    backgroundColor: '#4a5568',
-                                    borderRadius: '5px' 
-                                }}>
-                                    {selectedNode.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
-                                </div>
-                            </div>
-
-                            {/* Tanggal Lahir */}
-                            {selectedNode.birthDate && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Tanggal Lahir:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
+                                ) : (
+                                    <div style={{
+                                        width: isMobile ? '120px' : '165px',
+                                        height: isMobile ? '160px' : '220px',
+                                        backgroundColor: '#3f3f46',
+                                        borderRadius: '16px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        margin: '0 auto',
+                                        border: `3px solid ${selectedNode.gender === 'male' ? '#7DACFF' : '#60EDF7'}`
                                     }}>
-                                        {this.formatDate(selectedNode.birthDate)}
+                                        <svg 
+                                            width={isMobile ? "60" : "80"} 
+                                            height={isMobile ? "60" : "80"} 
+                                            viewBox="0 0 24 24" 
+                                            fill="none" 
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path 
+                                                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
+                                                stroke="#9CA3AF" 
+                                                strokeWidth="2" 
+                                                strokeLinecap="round" 
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Tanggal Meninggal */}
-                            {selectedNode.deathDate && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Tanggal Meninggal:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {this.formatDate(selectedNode.deathDate)}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Umur */}
-                            <div style={{ marginBottom: '15px' }}>
-                                <strong>Umur {selectedNode.deathDate ? 'saat meninggal' : 'saat ini'}:</strong>
-                                <div style={{ 
-                                    marginTop: '5px', 
-                                    padding: '8px', 
-                                    backgroundColor: '#4a5568',
-                                    borderRadius: '5px' 
-                                }}>
-                                    {this.calculateAge(selectedNode.birthDate, selectedNode.deathDate)}
-                                </div>
+                                )}
                             </div>
 
-                            {/* Alamat */}
-                            {selectedNode.address && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Alamat:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {selectedNode.address}
-                                    </div>
-                                </div>
-                            )}
+                            {/* Name */}
+                            <div style={{
+                                textAlign: 'center',
+                                marginBottom: '20px',
+                                fontSize: isMobile ? '24px' : '32px',
+                                fontWeight: 'bold',
+                                color: '#F8F8F8',
+                                textTransform: 'uppercase',
+                                lineHeight: isMobile ? '1.2' : '1'
+                            }}>
+                                {selectedNode.name}
+                            </div>
 
-                            {/* Kota */}
-                            {selectedNode.city && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Kota:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {selectedNode.city}
-                                    </div>
-                                </div>
-                            )}
+                            {/* Note */}
+                            <div style={{
+                                textAlign: 'center',
+                                marginBottom: '20px',
+                                fontSize: isMobile ? '14px' : '16px',
+                                color: '#F8F8F8',
+                                fontStyle: 'italic',
+                                maxWidth: isMobile ? '280px' : '400px',
+                                marginLeft: 'auto',
+                                marginRight: 'auto',
+                                lineHeight: '1.4'
+                            }}>
+                                {selectedNode.note || 'Tidak ada catatan tambahan.'}
+                            </div>
 
-                            {/* Negara */}
-                            {selectedNode.country && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Negara:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {selectedNode.country}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Nomor Telepon */}
-                            {selectedNode.phone && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Nomor Telepon:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {selectedNode.phone}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Hubungan Keluarga */}
-                            {selectedNode.mid && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Ibu:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {this.getNameById(selectedNode.mid)}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {selectedNode.fid && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Ayah:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {this.getNameById(selectedNode.fid)}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {selectedNode.pids && selectedNode.pids.length > 0 && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <strong>Pasangan:</strong>
-                                    <div style={{ 
-                                        marginTop: '5px', 
-                                        padding: '8px', 
-                                        backgroundColor: '#4a5568',
-                                        borderRadius: '5px' 
-                                    }}>
-                                        {selectedNode.pids.map(pid => this.getNameById(pid)).join(', ')}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <strong>ID:</strong>
+                            {/* Information */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: isMobile ? '16px' : '20px',
+                                fontSize: isMobile ? '14px' : '16px',
+                                fontWeight: '500',
+                            }}>
                                 <div style={{ 
-                                    marginTop: '5px', 
-                                    padding: '8px', 
-                                    backgroundColor: '#4a5568',
-                                    borderRadius: '5px' 
+                                    width: '100%', 
+                                    border: '1px solid #3f3f46', 
+                                    borderRadius: '12px', 
+                                    padding: isMobile ? '12px' : '16px' 
                                 }}>
-                                    {selectedNode.id}
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Kelamin</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.gender}</div>
+                                        </li>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Alamat</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8', wordBreak: 'break-word' }}>{selectedNode.address || "-"}</div>
+                                        </li>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Tanggal Lahir</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.birthDate || "-"}</div>
+                                        </li>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Kematian</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.deathDate || "-"}</div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div style={{ 
+                                    width: '100%', 
+                                    border: '1px solid #3f3f46', 
+                                    borderRadius: '12px', 
+                                    padding: isMobile ? '12px' : '16px' 
+                                }}>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Email</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'none', fontWeight: 300, color: '#f8f8f8', wordBreak: 'break-all' }}>{selectedNode.email || "-"}</div>
+                                        </li>
+                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Nomor Telepon</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.phone || "-"}</div>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </>
                     )}
                 </div>
-                
+
                 {/* Family Tree Container */}
-                <div 
-                    id="tree" 
-                    ref={this.divRef} 
+                <div
+                    id="tree"
+                    ref={this.divRef}
                     style={{
-                        width: '100%', 
+                        width: '100%',
                         height: '100%',
-                        marginLeft: sidebarOpen ? '400px' : '0',
+                        marginLeft: treeMarginLeft,
                         transition: 'margin-left 0.3s ease-in-out'
                     }}
                 />
-                
-                {/* Overlay untuk menutup sidebar ketika klik di luar */}
-                {sidebarOpen && (
-                    <div 
+
+                {/* Overlay for closing sidebar */}
+                {sidebarOpen && isMobile && (
+                    <div
                         style={{
-                            position: 'absolute',
+                            position: 'fixed',
                             top: 0,
                             left: 0,
-                            width: '100%',
-                            height: '100%',
-                            backgroundColor: 'rgba(0,0,0,0.3)',
-                            zIndex: 999
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            zIndex: 1001,
+                            backdropFilter: 'blur(2px)'
                         }}
                         onClick={this.closeSidebar}
                     />
