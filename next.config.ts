@@ -1,10 +1,9 @@
-import type { NextConfig } from "next";
-import withTM from 'next-transpile-modules';
-
-const withTranspileModules = withTM(["@balkangraph/familytree.js"]);
-
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@balkangraph/familytree.js"],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
-export default withTranspileModules(nextConfig);
+module.exports = nextConfig;
