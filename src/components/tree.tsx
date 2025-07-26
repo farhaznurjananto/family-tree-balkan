@@ -15,7 +15,7 @@ interface FamilyTreeComponentProps {
 // Store untuk menyimpan foto yang akan diupload
 let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string } } = {};
 
-FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly) {
+FamilyTree.elements.myTextArea = function (data: any, editElement: any, minWidth: any, readOnly: any) {
   const id = FamilyTree.elements.generateId();
   let value = data[editElement.binding];
   if (value === undefined) value = "";
@@ -54,7 +54,7 @@ FamilyTree.elements.myTextArea = function (data, editElement, minWidth, readOnly
   };
 };
 
-FamilyTree.elements.myInputFile = function (data, editElement, minWidth, readOnly) {
+FamilyTree.elements.myInputFile = function (data: any, editElement: any, minWidth: any, readOnly: any) {
   const id = FamilyTree.elements.generateId();
   let currentPhotoUrl = data[editElement.binding] || "";
 
@@ -98,7 +98,7 @@ FamilyTree.elements.myInputFile = function (data, editElement, minWidth, readOnl
   };
 };
 
-FamilyTree.elements.myChangePhotoButton = function (data, editElement, minWidth, readOnly) {
+FamilyTree.elements.myChangePhotoButton = function (data: any, editElement: any, minWidth: any, readOnly: any) {
   const id = FamilyTree.elements.generateId();
   const currentPhotoUrl = data["photo"] || "";
 
@@ -342,7 +342,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     if (typeof window === "undefined") return;
 
     // Set global function untuk file selection
-    (window as unknown as Window & { handleFileSelect: typeof handleFileSelect }).handleFileSelect = handleFileSelect;
+    (window as any).handleFileSelect = handleFileSelect;
 
     const el = document.getElementById("tree");
     if (!el) return;
@@ -360,11 +360,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"></path></svg>`,
           onClick: () => handleDialogOpen(true),
         },
-        // save: {
-        //   text: "Save",
-        //   icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M219.31,72,184,36.69A15.86,15.86,0,0,0,172.69,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V83.31A15.86,15.86,0,0,0,219.31,72ZM168,208H88V152h80Zm40,0H184V152a16,16,0,0,0-16-16H88a16,16,0,0,0-16,16v56H48V48H172.69L208,83.31ZM160,72a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h56A8,8,0,0,1,160,72Z"></path></svg>`,
-        //   onClick: handleSaveTree,
-        // },
         importCSV: {
           text: "Import CSV",
           icon: FamilyTree.icon.csv(24, 24, "grey"),
@@ -411,7 +406,6 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
           { type: "textbox", label: "Occupation", binding: "occupation" },
-          // { type: "myChangePhotoButton", label: "", binding: "changePhoto" },
           { type: "myTextArea", label: "Note", binding: "note" },
           { type: "myInputFile", label: "Photo", binding: "photo" },
         ],
@@ -423,35 +417,38 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     });
 
     // Event handler untuk click node
-    treeRef.current.on("click", (sender, args) => {
+    treeRef.current.on("click", (sender: any, args: any) => {
       setIdNode(args.node.id);
     });
 
     // Handle form submission - process pending uploads saat Save and Close
-    treeRef.current.on("update", async (sender, args) => {
+    treeRef.current.on("update", (sender: any, args: any) => {
       if (args.updateNodesData && args.updateNodesData.length > 0) {
-        // Process each node that has pending image uploads
-        for (let i = 0; i < args.updateNodesData.length; i++) {
-          const nodeData = args.updateNodesData[i];
-          args.updateNodesData[i] = await processPendingUploads(nodeData);
-        }
-
-        // Save updated tree to database after all uploads are complete
-        try {
-          xmlSnapshotRef.current = treeRef.current?.getXML() || "";
-          const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-          const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-
-          if (dbError) {
-            console.error("Error saving tree:", dbError);
-            alert("Error menyimpan ke database");
-          } else {
-            console.log("Tree saved successfully:", updateResult);
+        // Process uploads asynchronously without blocking the event handler
+        (async () => {
+          // Process each node that has pending image uploads
+          for (let i = 0; i < args.updateNodesData.length; i++) {
+            const nodeData = args.updateNodesData[i];
+            args.updateNodesData[i] = await processPendingUploads(nodeData);
           }
-        } catch (error) {
-          console.error("Error saving tree:", error);
-          alert("Error menyimpan tree");
-        }
+    
+          // Save updated tree to database after all uploads are complete
+          try {
+            xmlSnapshotRef.current = treeRef.current?.getXML() || "";
+            const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+            const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+    
+            if (dbError) {
+              console.error("Error saving tree:", dbError);
+              alert("Error menyimpan ke database");
+            } else {
+              console.log("Tree saved successfully:", updateResult);
+            }
+          } catch (error) {
+            console.error("Error saving tree:", error);
+            alert("Error menyimpan tree");
+          }
+        })();
       }
     });
 
@@ -469,21 +466,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     <>
       <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
 
-      {/* {isUploading && <div className="loading">Uploading image...</div>} */}
       {isUploading && <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">Uploading image...</div>}
-      {/* {isUploading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-          <div className="text-lg font-medium text-gray-800">Uploading image...</div>
-        </div>
-      )} */}
-      {/* 
-      {isUploading ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-          <div className="text-lg font-medium text-gray-800">Uploading image...</div>
-        </div>
-      ) : (
-        <div id="tree" className="w-full" />
-      )} */}
 
       <div id="tree" className="w-full" />
     </>
