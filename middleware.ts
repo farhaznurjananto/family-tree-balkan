@@ -3,28 +3,34 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
-// Daftar halaman yang harus login
-const protectedRoutes = ["/admin"];
-
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
+  // Refresh session jika diperlukan
   const {
     data: { session },
+    error,
   } = await supabase.auth.getSession();
 
-  // Cek apakah user mencoba akses halaman yang dilindungi
-  const isProtected = protectedRoutes.some((path) => req.nextUrl.pathname.startsWith(path));
+  console.log("Middleware - Session:", session?.user?.email || "No session");
+  console.log("Middleware - Path:", req.nextUrl.pathname);
 
-  if (isProtected && !session) {
-    const loginUrl = new URL("/", req.url);
-    return NextResponse.redirect(loginUrl);
+  // Jika mencoba akses /admin tanpa session
+  if (req.nextUrl.pathname.startsWith("/admin") && !session) {
+    console.log("Redirecting to auth - no session");
+    return NextResponse.redirect(new URL("/auth", req.url));
+  }
+
+  // Jika sudah login dan mencoba akses /auth, redirect ke admin
+  if (req.nextUrl.pathname.startsWith("/auth") && session) {
+    console.log("Redirecting to admin - already logged in");
+    return NextResponse.redirect(new URL("/admin", req.url));
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/auth"],
 };
