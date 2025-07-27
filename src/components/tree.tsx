@@ -15,6 +15,152 @@ interface FamilyTreeComponentProps {
 // Store untuk menyimpan foto yang akan diupload
 let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string } } = {};
 
+FamilyTree.miniMap.backgroundColor = "#2b2b2b";
+FamilyTree.SEARCH_PLACEHOLDER = "CARI";
+FamilyTree.templates.base.defs = `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
+            <g id="base_node_menu" style="cursor:pointer;">
+                <rect x="0" y="0" fill="transparent" width="22" height="22"></rect>
+                <circle cx="4" cy="11" r="2" fill="#4A4A4A"></circle>
+                <circle cx="11" cy="11" r="2" fill="#4A4A4A"></circle>
+                <circle cx="18" cy="11" r="2" fill="#4A4A4A"></circle>
+            </g>
+            <g style="cursor: pointer;" id="base_tree_menu">
+                <rect x="0" y="0" width="25" height="25" fill="transparent"></rect>
+                ${FamilyTree.icon.addUser(13, 13, "#4A4A4A", 0, 0)}
+            </g>
+            <g style="cursor: pointer;" id="base_tree_menu_close">
+                <circle cx="9" cy="9" r="10" fill="#aeaeae"></circle>
+                ${FamilyTree.icon.close(18, 18, "#4A4A4A", 0, 0)}
+            </g>            
+            <g id="base_up">
+                <circle cx="15" cy="15" r="15" fill="#fff" stroke="#aeaeae" stroke-width="1"></circle>
+                ${FamilyTree.icon.ft(20, 20, "#aeaeae", 5, 5)}
+            </g>
+            <clipPath id="base_img_0">
+  <rect id="base_img_0_stroke" stroke-width="3" x="8" y="30" rx="10" ry="10" width="168" height="210"></rect>
+</clipPath>`;
+
+// Template configurations - posisi icon dipindahkan ke atas
+FamilyTree.templates.myTemplate = Object.assign({}, FamilyTree.templates.tommy);
+FamilyTree.templates.myTemplate.size = [184, 270];
+FamilyTree.templates.myTemplate.nodeTreeMenuButton = `<use ${"data-ctrl-n-t-menu-id"}="{id}" x="165" y="10" xlink:href="#base_tree_menu" />`;
+FamilyTree.templates.myTemplate.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="5" xlink:href="#base_node_menu" />`;
+FamilyTree.templates.myTemplate.nodeTreeMenuCloseButton = `<use ${"data-ctrl-n-t-menu-c"}="" x="5" y="5" xlink:href="#base_tree_menu_close" />`;
+
+FamilyTree.templates.myTemplate_male = Object.assign({}, FamilyTree.templates.tommy);
+FamilyTree.templates.myTemplate_male.size = [184, 270];
+FamilyTree.templates.myTemplate_male.nodeTreeMenuButton = `<use ${"data-ctrl-n-t-menu-id"}="{id}" x="165" y="10" xlink:href="#base_tree_menu" />`;
+FamilyTree.templates.myTemplate_male.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="5" xlink:href="#base_node_menu" />`;
+FamilyTree.templates.myTemplate_male.nodeTreeMenuCloseButton = `<use ${"data-ctrl-n-t-menu-c"}="" x="5" y="5" xlink:href="#base_tree_menu_close" />`;
+
+FamilyTree.templates.myTemplate_female = Object.assign({}, FamilyTree.templates.tommy);
+FamilyTree.templates.myTemplate_female.size = [184, 270];
+FamilyTree.templates.myTemplate_female.nodeTreeMenuButton = `<use ${"data-ctrl-n-t-menu-id"}="{id}" x="165" y="10" xlink:href="#base_tree_menu" />`;
+FamilyTree.templates.myTemplate_female.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="5" xlink:href="#base_node_menu" />`;
+FamilyTree.templates.myTemplate_female.nodeTreeMenuCloseButton = `<use ${"data-ctrl-n-t-menu-c"}="" x="5" y="5" xlink:href="#base_tree_menu_close" />`;
+
+// Node styling
+FamilyTree.templates.myTemplate_male.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#EAA64D" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+FamilyTree.templates.myTemplate_female.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#90D1CA" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+FamilyTree.templates.myTemplate_male.editFormHeaderColor = "#EAA64D";
+FamilyTree.templates.myTemplate_female.editFormHeaderColor = "#90D1CA";
+
+FamilyTree.templates.mother = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.mother.up = "";
+FamilyTree.templates.mother.size = [184, 270];
+FamilyTree.templates.mother.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Mother</text>`;
+
+FamilyTree.templates.father = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.father.up = "";
+FamilyTree.templates.father.size = [184, 270];
+FamilyTree.templates.father.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Father</text>`;
+
+FamilyTree.templates.husband = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.husband.up = "";
+FamilyTree.templates.husband.size = [184, 270];
+FamilyTree.templates.husband.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Husband</text>`;
+
+FamilyTree.templates.son = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.son.up = "";
+FamilyTree.templates.son.size = [184, 270];
+FamilyTree.templates.son.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#7DACFF" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Son</text>`;
+
+FamilyTree.templates.daughter = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.daughter.up = "";
+FamilyTree.templates.daughter.size = [184, 270];
+FamilyTree.templates.daughter.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Daughter</text>`;
+
+FamilyTree.templates.wife = Object.assign({}, FamilyTree.templates.base);
+FamilyTree.templates.wife.up = "";
+FamilyTree.templates.wife.size = [184, 270];
+FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#60EDF7" stroke="#aeaeae" rx="15" ry="15"></rect>
+    <g transform="translate(92, 100)">
+        ${FamilyTree.icon.user(48, 48, "#4A4A4A", 0, 0)}
+    </g>
+    <text data-width="182" data-text-overflow="ellipsis" style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="200" text-anchor="middle">Add Wife</text>`;
+
+// Field styling - posisi nama dipindahkan ke bawah untuk memberi ruang pada gambar
+FamilyTree.templates.myTemplate.field_0 =
+  FamilyTree.templates.myTemplate_male.field_0 =
+  FamilyTree.templates.myTemplate_female.field_0 =
+    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+
+// Image styling - gambar diturunkan dan ukurannya disesuaikan
+FamilyTree.templates.myTemplate.img_0 =
+  FamilyTree.templates.myTemplate_male.img_0 =
+  FamilyTree.templates.myTemplate_female.img_0 =
+    `<use xlink:href="#base_img_0_stroke" />
+            <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
+            <g style="display:none" class="default-avatar">
+                <rect x="8" y="30" width="168" height="210" fill="#3f3f46" rx="10" ry="10"></rect>
+                <g transform="translate(92, 135)">
+                    <path d="M-24 -16C-24 -27.0457 -15.0457 -36 -4 -36C7.0457 -36 16 -27.0457 16 -16C16 -4.9543 7.0457 4 -4 4C-15.0457 4 -24 -4.9543 -24 -16Z" 
+                          fill="#9CA3AF" stroke="#9CA3AF" stroke-width="2"/>
+                    <path d="M-40 44V36C-40 24.9543 -31.0457 16 -20 16H12C23.0457 16 32 24.9543 32 36V44" 
+                          fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+            </g>`;
+
+// Placeholder templates
+const placeholderTemplates = ["mother", "father", "husband", "son", "daughter", "wife"];
+const placeholderColors = {
+  mother: "#60EDF7",
+  father: "#7DACFF",
+  husband: "#7DACFF",
+  son: "#7DACFF",
+  daughter: "#60EDF7",
+  wife: "#60EDF7",
+};
+
+placeholderTemplates.forEach((templateName) => {
+  FamilyTree.templates[templateName] = Object.assign({}, FamilyTree.templates.base);
+  FamilyTree.templates[templateName].up = "";
+  FamilyTree.templates[templateName].size = [184, 270];
+  FamilyTree.templates[templateName].node = `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="${placeholderColors[templateName as keyof typeof placeholderColors]}" stroke="#aeaeae" rx="15" ry="15"></rect>
+                <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add ${templateName.charAt(0).toUpperCase() + templateName.slice(1)}</text>`;
+});
+
 FamilyTree.elements.myTextArea = function (data: any, editElement: any, minWidth: any, readOnly: any) {
   const id = FamilyTree.elements.generateId();
   let value = data[editElement.binding];
@@ -31,10 +177,10 @@ FamilyTree.elements.myTextArea = function (data: any, editElement: any, minWidth
   const rDisabledAttr = readOnly ? "disabled" : "";
 
   // Style <textarea>
-  const textAreaStyle = readOnly ? "border: none; background: transparent; resize: none; color: #333;" : "border: 1px solid #ccc; background: white;";
+  const textAreaStyle = readOnly ? "border: none; background: transparent; resize: none; color: #CCC;" : "border: 1px solid #ccc; background: transparent;";
 
   // Style <label>
-  const labelStyle = readOnly ? "color: #ACACAC; padding-left: 8px; display: inline-block;" : "color: #ACACAC;";
+  const labelStyle = readOnly ? "color: #CCC; padding-left: 8px; display: inline-block;" : "color: #CCC;";
 
   return {
     html: `<div class="textarea-field">
@@ -352,7 +498,14 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     };
 
     treeRef.current = new FamilyTree(el, {
-      nodes: dataTree.file,
+      mode: "dark",
+      template: "myTemplate",
+      nodes: dataTree.file.map((node) => ({
+        ...node,
+        photo:
+          node.photo ||
+          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIxMCIgdmlld0JveD0iMCAwIDE2OCAyMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjEwIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTA1KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K",
+      })),
       nodeBinding,
       menu: {
         home: {
@@ -367,6 +520,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
         },
         pdf: { text: "Export PDF" },
         png: { text: "Export PNG" },
+        csv: { text: "Export CSV" },
         logout: {
           text: "Logout",
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"></path></svg>`,
@@ -431,13 +585,13 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
             const nodeData = args.updateNodesData[i];
             args.updateNodesData[i] = await processPendingUploads(nodeData);
           }
-    
+
           // Save updated tree to database after all uploads are complete
           try {
             xmlSnapshotRef.current = treeRef.current?.getXML() || "";
             const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
             const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-    
+
             if (dbError) {
               console.error("Error saving tree:", dbError);
               alert("Error menyimpan ke database");
@@ -468,7 +622,15 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
 
       {isUploading && <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">Uploading image...</div>}
 
-      <div id="tree" className="w-full" />
+      <div
+        id="tree"
+        className="w-full"
+        style={{
+          backgroundColor: "#121212", // latar belakang gelap
+          color: "#f1f1f1", // teks terang, jika ada
+          minHeight: "100vh", // opsional agar penuh
+        }}
+      />
     </>
   );
 }
