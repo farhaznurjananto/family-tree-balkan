@@ -7,6 +7,7 @@ import Dialog from "@/components/dialog";
 import { ITree, NodeData } from "@/types/tree";
 import { useRouter } from "next/navigation";
 import { convertXmlToJson } from "@/libs/convertJson";
+import ImageCropModal from "./ImageCropModal";
 
 interface FamilyTreeComponentProps {
   dataTree: ITree;
@@ -15,7 +16,7 @@ interface FamilyTreeComponentProps {
 // Store untuk menyimpan foto yang akan diupload
 let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string } } = {};
 
-FamilyTree.miniMap.backgroundColor = "#2b2b2b";
+FamilyTree.miniMap.selectorBackgroundColor = "#2b2b2b";
 FamilyTree.SEARCH_PLACEHOLDER = "CARI";
 FamilyTree.templates.base.defs = `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
             <g id="base_node_menu" style="cursor:pointer;">
@@ -276,6 +277,13 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
   const xmlSnapshotRef = useRef<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [cropModal, setCropModal] = useState({
+    isOpen: false,
+    imageSrc: "",
+    nodeId: "",
+    position: { x: 100, y: 100 },
+  })
+
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
     name: dataTree.name,
@@ -357,35 +365,73 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file || !idNode) return;
-
-      // Get current photo URL from hidden input (lebih akurat)
-      const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
-      const oldPhotoUrl = hiddenInput?.value || "";
-
-      // Store file untuk diupload nanti saat save
-      pendingImageUploads[idNode] = {
-        file,
-        oldPhotoUrl: oldPhotoUrl || undefined,
+  
+      // Reset input value
+      event.target.value = '';
+  
+      // Get better position - center of screen atau dekat dengan form
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const modalWidth = 420;
+      const modalHeight = 450;
+      
+      const position = {
+        x: Math.max(50, (viewportWidth - modalWidth) / 2), // Center horizontally
+        y: Math.max(50, (viewportHeight - modalHeight) / 2), // Center vertically
       };
-
-      console.log(`File selected for node ${idNode}:`, file.name);
-      console.log(`Old photo URL to delete:`, oldPhotoUrl); // Debug log
-
-      // Preview image
+  
+      // Create preview URL and open crop modal
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
+        setCropModal({
+          isOpen: true,
+          imageSrc: result,
+          nodeId: idNode,
+          position,
+        });
+      };
+      reader.readAsDataURL(file);
+    },
+    [idNode]
+  );
 
-        // Update preview image in form
-        const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
-        if (imgElement) {
-          imgElement.src = result;
-        }
-
-        // Show change photo button and hide file input
-        const fileInput = event.target;
+  const handleCropConfirm = useCallback((croppedFile: File) => {
+    const nodeId = cropModal.nodeId;
+    if (!nodeId) return;
+  
+    // Get current photo URL from hidden input
+    const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+    const oldPhotoUrl = hiddenInput?.value || "";
+  
+    // Store cropped and compressed file for upload
+    pendingImageUploads[nodeId] = {
+      file: croppedFile,
+      oldPhotoUrl: oldPhotoUrl || undefined,
+    };
+  
+    // Preview image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      
+      // Update preview image in form
+      const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
+      if (imgElement) {
+        imgElement.src = result;
+      }
+  
+      // Update hidden input value temporarily for preview
+      const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+      if (hiddenInput) {
+        hiddenInput.value = result;
+      }
+  
+      // Show change photo button and hide file input
+      const fileInput = document.querySelector('input[type="file"][data-binding="photo"]') as HTMLInputElement;
+      if (fileInput) {
         fileInput.style.display = "none";
-
+  
         // Add change photo button if not exists
         const container = fileInput.closest(".input-file-field");
         if (container && !container.querySelector("button")) {
@@ -396,11 +442,17 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
           button.onclick = () => fileInput.click();
           container.appendChild(button);
         }
-      };
-      reader.readAsDataURL(file);
-    },
-    [idNode]
-  );
+      }
+    };
+    reader.readAsDataURL(croppedFile);
+  
+    // Close crop modal
+    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
+  }, [cropModal.nodeId]);
+
+  const handleCropCancel = useCallback(() => {
+    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
+  }, []);
 
   const handleDialogOpen = useCallback((status: boolean) => {
     setDialogStatus(status);
@@ -500,7 +552,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     treeRef.current = new FamilyTree(el, {
       mode: "dark",
       template: "myTemplate",
-      nodes: dataTree.file.map((node) => ({
+      nodes: dataTree.file.map((node: NodeData) => ({
         ...node,
         photo:
           node.photo ||
@@ -618,9 +670,28 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
 
   return (
     <>
-      <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
+      <Dialog
+        status={dialogStatus}
+        id={treeMetadata.id}
+        name={treeMetadata.name}
+        description={treeMetadata.description}
+        handleDialogClose={handleDialogClose}
+        onUpdateSuccess={handleUpdateSuccess}
+      />
 
-      {isUploading && <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">Uploading image...</div>}
+      <ImageCropModal
+        isOpen={cropModal.isOpen}
+        imageSrc={cropModal.imageSrc}
+        position={cropModal.position}
+        onCancel={handleCropCancel}
+        onConfirm={handleCropConfirm}
+      />
+
+      {isUploading && (
+        <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Uploading image...
+        </div>
+      )}
 
       <div
         id="tree"
