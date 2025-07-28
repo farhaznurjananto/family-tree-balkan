@@ -16,7 +16,9 @@
     "next": "15.4.2",
     "next-transpile-modules": "^10.0.1",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-image-crop": "^11.0.10",
+    "react-image-file-resizer": "^0.4.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

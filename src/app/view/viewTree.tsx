@@ -53,7 +53,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
     componentDidMount(): void {
         // Set initial mobile state
         this.setState({ isMobile: this.checkIsMobile() });
-        
+
         // Add resize listener
         window.addEventListener('resize', this.handleResize);
 
@@ -73,7 +73,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
         //         z-index: 999 !important;
         //         width: 200px !important;
         //     }
-            
+
         //     @media screen and (max-width: 768px) {
         //         .bft-search {
         //             top: 70px !important;
@@ -81,7 +81,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
         //             width: 160px !important;
         //         }
         //     }
-            
+
         //     .bft-search input {
         //         background-color: rgba(15, 15, 17, 0.9) !important;
         //         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -90,7 +90,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
         //         padding: 8px 12px !important;
         //         font-size: 14px !important;
         //     }
-            
+
         //     .bft-search input::placeholder {
         //         color: rgba(248, 248, 248, 0.6) !important;
         //     }
@@ -252,7 +252,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
                         }
                     }
                 });
-                
+
                 // Add touch handler for mobile
                 node.addEventListener('touchend', (e) => {
                     e.preventDefault();
@@ -319,10 +319,10 @@ export default class Tree extends Component<TreeProps, TreeState> {
         const headerLeft = sidebarOpen ? (isMobile ? '20px' : '665px') : '20px';
 
         return (
-            <div style={{ 
-                position: 'relative', 
-                width: '100%', 
-                height: '100vh', 
+            <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '100vh',
                 fontFamily: 'Poppins, sans-serif',
                 overflow: 'hidden',
                 zIndex: 1002,
@@ -332,13 +332,14 @@ export default class Tree extends Component<TreeProps, TreeState> {
                     display: isMobile ? 'none' : 'block',
                     position: 'absolute',
                     top: '20px',
-                    left: headerLeft,
+                    left: '50%',
+                    transform: `translateX(calc(-50% + ${sidebarOpen ? '200px' : '0px'}))`,
                     zIndex: 1001,
                     color: '#F8F8F8',
                     fontSize: isMobile ? '16px' : '24px',
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
-                    transition: 'left 0.3s ease-in-out',
+                    transition: 'transform 0.3s ease-in-out',
                     pointerEvents: 'none',
                     padding: isMobile ? '8px 12px' : '12px 20px',
                     backgroundColor: 'transparent',
@@ -431,18 +432,18 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                         margin: '0 auto',
                                         border: `3px solid ${selectedNode.gender === 'male' ? '#7DACFF' : '#60EDF7'}`
                                     }}>
-                                        <svg 
-                                            width={isMobile ? "60" : "80"} 
-                                            height={isMobile ? "60" : "80"} 
-                                            viewBox="0 0 24 24" 
-                                            fill="none" 
+                                        <svg
+                                            width={isMobile ? "60" : "80"}
+                                            height={isMobile ? "60" : "80"}
+                                            viewBox="0 0 24 24"
+                                            fill="none"
                                             xmlns="http://www.w3.org/2000/svg"
                                         >
-                                            <path 
-                                                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
-                                                stroke="#9CA3AF" 
-                                                strokeWidth="2" 
-                                                strokeLinecap="round" 
+                                            <path
+                                                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z"
+                                                stroke="#9CA3AF"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
                                                 strokeLinejoin="round"
                                             />
                                         </svg>
@@ -486,11 +487,11 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                 fontSize: isMobile ? '14px' : '16px',
                                 fontWeight: '500',
                             }}>
-                                <div style={{ 
-                                    width: '100%', 
-                                    border: '1px solid #3f3f46', 
-                                    borderRadius: '12px', 
-                                    padding: isMobile ? '12px' : '16px' 
+                                <div style={{
+                                    width: '100%',
+                                    border: '1px solid #3f3f46',
+                                    borderRadius: '12px',
+                                    padding: isMobile ? '12px' : '16px'
                                 }}>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
                                         <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
@@ -512,11 +513,11 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                     </ul>
                                 </div>
 
-                                <div style={{ 
-                                    width: '100%', 
-                                    border: '1px solid #3f3f46', 
-                                    borderRadius: '12px', 
-                                    padding: isMobile ? '12px' : '16px' 
+                                <div style={{
+                                    width: '100%',
+                                    border: '1px solid #3f3f46',
+                                    borderRadius: '12px',
+                                    padding: isMobile ? '12px' : '16px'
                                 }}>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
                                         <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
