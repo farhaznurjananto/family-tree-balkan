@@ -120,7 +120,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
     left: `${position.x}px`,
     top: `${position.y}px`,
     maxWidth: '400px',
-    backgroundColor: 'white',
+    backgroundColor: '#121212',
     border: '2px solid #d1d5db',
     borderRadius: '8px',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -138,6 +138,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const titleStyle = {
     fontSize: '14px',
     fontWeight: '600',
+    color: 'white',
     margin: 0
   };
 
@@ -175,31 +176,31 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const cancelButtonStyle = {
     padding: '4px 12px',
     fontSize: '14px',
-    border: '1px solid #d1d5db',
+    border: '1px solid #3fc0ff',
     borderRadius: '4px',
-    backgroundColor: 'white',
-    color: '#374151',
+    backgroundColor: 'transparent',
+    color: 'white',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease'
   };
 
   const cancelButtonHoverStyle = {
-    backgroundColor: '#f9fafb'
+    backgroundColor: '#3fc0ff'
   };
 
   const confirmButtonStyle = {
     padding: '4px 12px',
     fontSize: '14px',
-    backgroundColor: completedCrop ? '#3b82f6' : '#9ca3af',
+    backgroundColor: '#039be5',
     color: 'white',
-    border: 'none',
+    border: '1px solid #3fc0ff',
     borderRadius: '4px',
     cursor: completedCrop ? 'pointer' : 'not-allowed',
     transition: 'background-color 0.2s ease'
   };
 
   const confirmButtonHoverStyle = {
-    backgroundColor: completedCrop ? '#2563eb' : '#9ca3af'
+    backgroundColor: '#2563eb'
   };
 
   return (

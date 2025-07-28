@@ -15,9 +15,37 @@ interface TreeState {
     isMobile: boolean;
 }
 
+class CustomEditForm {
+    private tree: Tree;
+
+    constructor(tree: Tree) {
+        this.tree = tree;
+    }
+
+    show(nodeId: string, readOnly: boolean = true) {
+        const nodeData = this.tree.family.get(nodeId);
+
+        if (nodeData) {
+            this.tree.setState({
+                selectedNode: nodeData,
+                sidebarOpen: true
+            });
+        }
+    }
+
+    hide() {
+        this.tree.setState({
+            sidebarOpen: false,
+            selectedNode: null
+        });
+    }
+}
+
 export default class Tree extends Component<TreeProps, TreeState> {
     private divRef: RefObject<HTMLDivElement | null>;
-    private family: any;
+    public family: any;
+    private customEditForm: CustomEditForm;
+
 
     constructor(props: TreeProps) {
         super(props);
@@ -27,6 +55,8 @@ export default class Tree extends Component<TreeProps, TreeState> {
             sidebarOpen: false,
             isMobile: false
         };
+        this.customEditForm = new CustomEditForm(this);
+
     }
 
     // Check if device is mobile
@@ -126,27 +156,29 @@ export default class Tree extends Component<TreeProps, TreeState> {
         // Template configurations
         FamilyTree.templates.myTemplate = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate.size = [184, 270];
-        FamilyTree.templates.myTemplate.nodeTreeMenuButton = '';
-        FamilyTree.templates.myTemplate.nodeMenuButton = '';
-        FamilyTree.templates.myTemplate.nodeTreeMenuCloseButton = '';
+        FamilyTree.templates.myTemplate.nodeTreeMenuButton = `<use ${"data-ctrl-n-t-menu-id"}="{id}" x="165" y="10" xlink:href="#base_tree_menu" />`;
+        FamilyTree.templates.myTemplate.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="5" xlink:href="#base_node_menu" />`;
+        FamilyTree.templates.myTemplate.nodeTreeMenuCloseButton = `<use ${"data-ctrl-n-t-menu-c"}="" x="5" y="5" xlink:href="#base_tree_menu_close" />`;
 
         FamilyTree.templates.myTemplate_male = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate_male.size = [184, 270];
         FamilyTree.templates.myTemplate_male.nodeTreeMenuButton = '';
-        FamilyTree.templates.myTemplate_male.nodeMenuButton = '';
-        FamilyTree.templates.myTemplate_male.nodeTreeMenuCloseButton = '';
+        FamilyTree.templates.myTemplate_male.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="245" xlink:href="#base_node_menu" />`;
+        FamilyTree.templates.myTemplate_male.nodeTreeMenuCloseButton = ``;
 
         FamilyTree.templates.myTemplate_female = Object.assign({}, FamilyTree.templates.tommy);
         FamilyTree.templates.myTemplate_female.size = [184, 270];
         FamilyTree.templates.myTemplate_female.nodeTreeMenuButton = '';
-        FamilyTree.templates.myTemplate_female.nodeMenuButton = '';
+        FamilyTree.templates.myTemplate_female.nodeMenuButton = `<use ${FamilyTree.attr.control_node_menu_id}="{id}" x="10" y="245" xlink:href="#base_node_menu" />`;
         FamilyTree.templates.myTemplate_female.nodeTreeMenuCloseButton = '';
 
         // Node styling
         FamilyTree.templates.myTemplate_male.node =
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#FFFFFF" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#EAA64D" stroke="#aeaeae" rx="15" ry="15"></rect>`;
         FamilyTree.templates.myTemplate_female.node =
-            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#FFFFFF" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+            `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="0" fill="#90D1CA" stroke="#aeaeae" rx="15" ry="15"></rect>`;
+        FamilyTree.templates.myTemplate_male.editFormHeaderColor = "#EAA64D";
+        FamilyTree.templates.myTemplate_female.editFormHeaderColor = "#90D1CA";
 
         // Field styling
         FamilyTree.templates.myTemplate.field_0 =
@@ -194,83 +226,91 @@ export default class Tree extends Component<TreeProps, TreeState> {
         // Initialize FamilyTree
         this.family = new FamilyTree(this.divRef.current, {
             mode: 'dark',
-            nodeTreeMenu: false,
+            template: "myTemplate",
+            nodes: this.props.nodes.map(node => ({
+                ...node,
+                photo: node.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIzMiIgdmlld0JveD0iMCAwIDE2OCAyMzIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjMyIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTE2KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K'
+            })),
+            nodeMenu: {
+                details: {
+                    text: "Details", onClick: (nodeId: string) => {
+                        this.customEditForm.show(nodeId, true);
+                    }
+                },
+            },
+            nodeTreeMenu: true,
             nodeMouseClick: FamilyTree.action.none,
-            template: 'myTemplate',
             searchDisplayField: 'name',
             searchFields: ['name'],
             enableSearch: true,
+            editForm: { readOnly: true, photoBinding: 'photo', buttons: { pdf: null, share: null } },
             nodeBinding: {
                 field_0: "name",
                 img_0: "photo"
             },
-            nodes: this.props.nodes.map(node => ({
-                ...node,
-                photo: node.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIzMiIgdmlld0JveD0iMCAwIDE2OCAyMzIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjMyIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTE2KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K'
-            }))
         });
 
         // Event listener for node click
-        this.family.on('click', (sender: any, args: any) => {
-            if (args.node) {
-                const nodeData: NodeData = this.family.get(args.node.id);
-                console.log('Node clicked:', nodeData); // Debug log
-                this.setState({
-                    selectedNode: nodeData,
-                    sidebarOpen: true
-                });
-            }
-        });
+        // this.family.on('click', (sender: any, args: any) => {
+        //     if (args.node) {
+        //         const nodeData: NodeData = this.family.get(args.node.id);
+        //         console.log('Node clicked:', nodeData); // Debug log
+        //         this.setState({
+        //             selectedNode: nodeData,
+        //             sidebarOpen: true
+        //         });
+        //     }
+        // });
 
         // Alternative event listener for mobile touch
-        this.family.on('nodeclick', (sender: any, args: any) => {
-            if (args.node) {
-                const nodeData: NodeData = this.family.get(args.node.id);
-                console.log('Node touched:', nodeData); // Debug log
-                this.setState({
-                    selectedNode: nodeData,
-                    sidebarOpen: true
-                });
-            }
-        });
+        // this.family.on('nodeclick', (sender: any, args: any) => {
+        //     if (args.node) {
+        //         const nodeData: NodeData = this.family.get(args.node.id);
+        //         console.log('Node touched:', nodeData); // Debug log
+        //         this.setState({
+        //             selectedNode: nodeData,
+        //             sidebarOpen: true
+        //         });
+        //     }
+        // });
 
         // Add direct click handlers after render
-        setTimeout(() => {
-            const nodes = this.divRef.current?.querySelectorAll('g[node-id]');
-            nodes?.forEach((node) => {
-                node.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const nodeId = (node as Element).getAttribute('node-id');
-                    if (nodeId) {
-                        const nodeData: NodeData = this.family.get(nodeId);
-                        if (nodeData) {
-                            console.log('Direct click on node:', nodeData);
-                            this.setState({
-                                selectedNode: nodeData,
-                                sidebarOpen: true
-                            });
-                        }
-                    }
-                });
+        // setTimeout(() => {
+        //     const nodes = this.divRef.current?.querySelectorAll('g[node-id]');
+        //     nodes?.forEach((node) => {
+        //         node.addEventListener('click', (e) => {
+        //             e.stopPropagation();
+        //             const nodeId = (node as Element).getAttribute('node-id');
+        //             if (nodeId) {
+        //                 const nodeData: NodeData = this.family.get(nodeId);
+        //                 if (nodeData) {
+        //                     console.log('Direct click on node:', nodeData);
+        //                     this.setState({
+        //                         selectedNode: nodeData,
+        //                         sidebarOpen: true
+        //                     });
+        //                 }
+        //             }
+        //         });
 
-                // Add touch handler for mobile
-                node.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const nodeId = (node as Element).getAttribute('node-id');
-                    if (nodeId) {
-                        const nodeData: NodeData = this.family.get(nodeId);
-                        if (nodeData) {
-                            console.log('Touch on node:', nodeData);
-                            this.setState({
-                                selectedNode: nodeData,
-                                sidebarOpen: true
-                            });
-                        }
-                    }
-                });
-            });
-        }, 1000);
+        //         // Add touch handler for mobile
+        //         node.addEventListener('touchend', (e) => {
+        //             e.preventDefault();
+        //             e.stopPropagation();
+        //             const nodeId = (node as Element).getAttribute('node-id');
+        //             if (nodeId) {
+        //                 const nodeData: NodeData = this.family.get(nodeId);
+        //                 if (nodeData) {
+        //                     console.log('Touch on node:', nodeData);
+        //                     this.setState({
+        //                         selectedNode: nodeData,
+        //                         sidebarOpen: true
+        //                     });
+        //                 }
+        //             }
+        //         });
+        //     });
+        // }, 1000);
     }
 
     componentWillUnmount(): void {
@@ -331,7 +371,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
                 <div style={{
                     display: isMobile ? 'none' : 'block',
                     position: 'absolute',
-                    top: '20px',
+                    top: '22px',
                     left: '50%',
                     transform: `translateX(calc(-50% + ${sidebarOpen ? '200px' : '0px'}))`,
                     zIndex: 1001,
@@ -342,7 +382,8 @@ export default class Tree extends Component<TreeProps, TreeState> {
                     transition: 'transform 0.3s ease-in-out',
                     pointerEvents: 'none',
                     padding: isMobile ? '8px 12px' : '12px 20px',
-                    backgroundColor: 'transparent',
+                    // border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(15, 15, 17, 0.9)',
                     borderRadius: '8px',
                     maxWidth: isMobile ? '200px' : '400px',
                     whiteSpace: 'nowrap',
@@ -494,19 +535,23 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                     padding: isMobile ? '12px' : '16px'
                                 }}>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Kelamin</div>
-                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.gender}</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.gender || "-"}</div>
                                         </li>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Pekerjaan</div>
+                                            <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.occupation || "-"}</div>
+                                        </li>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Alamat</div>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8', wordBreak: 'break-word' }}>{selectedNode.address || "-"}</div>
                                         </li>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Tanggal Lahir</div>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.birthDate || "-"}</div>
                                         </li>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Kematian</div>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.deathDate || "-"}</div>
                                         </li>
@@ -520,11 +565,11 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                     padding: isMobile ? '12px' : '16px'
                                 }}>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Email</div>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'none', fontWeight: 300, color: '#f8f8f8', wordBreak: 'break-all' }}>{selectedNode.email || "-"}</div>
                                         </li>
-                                        <li style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
+                                        <li style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', gap: isMobile ? '4px' : '0' }}>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 'bold' }}>Nomor Telepon</div>
                                             <div style={{ width: isMobile ? '100%' : '50%', textTransform: 'uppercase', fontWeight: 300, color: '#f8f8f8' }}>{selectedNode.phone || "-"}</div>
                                         </li>

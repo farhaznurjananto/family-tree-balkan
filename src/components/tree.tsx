@@ -16,7 +16,7 @@ interface FamilyTreeComponentProps {
 // Store untuk menyimpan foto yang akan diupload
 let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string } } = {};
 
-FamilyTree.miniMap.backgroundColor = "#2b2b2b";
+FamilyTree.miniMap.selectorBackgroundColor = "#2b2b2b";
 FamilyTree.SEARCH_PLACEHOLDER = "CARI";
 FamilyTree.templates.base.defs = `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
             <g id="base_node_menu" style="cursor:pointer;">
@@ -552,7 +552,7 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     treeRef.current = new FamilyTree(el, {
       mode: "dark",
       template: "myTemplate",
-      nodes: dataTree.file.map((node) => ({
+      nodes: dataTree.file.map((node: NodeData) => ({
         ...node,
         photo:
           node.photo ||
