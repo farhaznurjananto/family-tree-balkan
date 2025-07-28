@@ -9,8 +9,13 @@ import { useRouter } from "next/navigation";
 import { convertXmlToJson } from "@/libs/convertJson";
 import ImageCropModal from "./ImageCropModal";
 
+// interface FamilyTreeComponentProps {
+//   dataTree: ITree;
+// }
+
 interface FamilyTreeComponentProps {
   dataTree: ITree;
+  onUpdate: () => void | Promise<void>; // tambahkan Promise<void> untuk async handling
 }
 
 // Store untuk menyimpan foto yang akan diupload
@@ -269,7 +274,7 @@ FamilyTree.elements.myChangePhotoButton = function (data: any, editElement: any,
   };
 };
 
-export default function Tree({ dataTree }: FamilyTreeComponentProps) {
+export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
   const treeRef = useRef<FamilyTree | null>(null);
   const [dialogStatus, setDialogStatus] = useState(false);
   const router = useRouter();
@@ -473,26 +478,54 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     }
   }, [router]);
 
+  // const handleSaveTree = useCallback(async () => {
+  //   if (!treeRef.current) return;
+
+  //   try {
+  //     xmlSnapshotRef.current = treeRef.current.getXML();
+  //     const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+  //     const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
+  //     if (error) {
+  //       console.error("Error saving tree:", error);
+  //       alert("Error saving tree");
+  //     } else {
+  //       console.log("Tree saved successfully:", updatedData);
+  //       alert("Tree saved successfully");
+  //     }
+  //   } catch (error) {
+  //     alert("Error saving tree");
+  //     console.error("Error saving tree:", error);
+  //   }
+  // }, [dataTree.id]);
+
   const handleSaveTree = useCallback(async () => {
     if (!treeRef.current) return;
-
+  
     try {
       xmlSnapshotRef.current = treeRef.current.getXML();
       const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-
+      const { data: updatedData, error } = await supabase
+        .from("trees")
+        .update({ file: jsonNodes })
+        .eq("id", dataTree.id);
+  
       if (error) {
         console.error("Error saving tree:", error);
         alert("Error saving tree");
       } else {
         console.log("Tree saved successfully:", updatedData);
         alert("Tree saved successfully");
+        // PANGGIL onUpdate SETELAH BERHASIL SAVE
+        if (onUpdate) {
+          await onUpdate();
+        }
       }
     } catch (error) {
       alert("Error saving tree");
       console.error("Error saving tree:", error);
     }
-  }, [dataTree.id]);
+  }, [dataTree.id, onUpdate]);
 
   // Process pending image uploads when form is saved
   const processPendingUploads = useCallback(
@@ -628,27 +661,63 @@ export default function Tree({ dataTree }: FamilyTreeComponentProps) {
     });
 
     // Handle form submission - process pending uploads saat Save and Close
+    // treeRef.current.on("update", (sender: any, args: any) => {
+    //   if (args.updateNodesData && args.updateNodesData.length > 0) {
+    //     // Process uploads asynchronously without blocking the event handler
+    //     (async () => {
+    //       // Process each node that has pending image uploads
+    //       for (let i = 0; i < args.updateNodesData.length; i++) {
+    //         const nodeData = args.updateNodesData[i];
+    //         args.updateNodesData[i] = await processPendingUploads(nodeData);
+    //       }
+
+    //       // Save updated tree to database after all uploads are complete
+    //       try {
+    //         xmlSnapshotRef.current = treeRef.current?.getXML() || "";
+    //         const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+    //         const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
+    //         if (dbError) {
+    //           console.error("Error saving tree:", dbError);
+    //           alert("Error menyimpan ke database");
+    //         } else {
+    //           console.log("Tree saved successfully:", updateResult);
+    //         }
+    //       } catch (error) {
+    //         console.error("Error saving tree:", error);
+    //         alert("Error menyimpan tree");
+    //       }
+    //     })();
+    //   }
+    // });
+
     treeRef.current.on("update", (sender: any, args: any) => {
       if (args.updateNodesData && args.updateNodesData.length > 0) {
-        // Process uploads asynchronously without blocking the event handler
         (async () => {
           // Process each node that has pending image uploads
           for (let i = 0; i < args.updateNodesData.length; i++) {
             const nodeData = args.updateNodesData[i];
             args.updateNodesData[i] = await processPendingUploads(nodeData);
           }
-
+    
           // Save updated tree to database after all uploads are complete
           try {
             xmlSnapshotRef.current = treeRef.current?.getXML() || "";
             const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-            const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
-
+            const { data: updateResult, error: dbError } = await supabase
+              .from("trees")
+              .update({ file: jsonNodes })
+              .eq("id", dataTree.id);
+    
             if (dbError) {
               console.error("Error saving tree:", dbError);
               alert("Error menyimpan ke database");
             } else {
               console.log("Tree saved successfully:", updateResult);
+              // PANGGIL onUpdate SETELAH BERHASIL SAVE
+              if (onUpdate) {
+                await onUpdate();
+              }
             }
           } catch (error) {
             console.error("Error saving tree:", error);

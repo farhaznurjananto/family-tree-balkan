@@ -77,6 +77,7 @@ export default function AdminPage() {
 
       if (error) {
         console.error("Error fetching trees:", error);
+        throw error;
       } else {
         setTrees(data as ITree[]);
       }
@@ -344,7 +345,8 @@ export default function AdminPage() {
       {/* Main content area */}
       <div>
         {trees.length > 0 ? (
-          <Tree dataTree={trees[0]} />
+          // <Tree dataTree={trees[0]} />
+          <Tree dataTree={trees[0]} onUpdate={() => fetchTrees(user.id)} />
         ) : (
           <div
             style={{
