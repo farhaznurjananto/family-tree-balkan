@@ -130,7 +130,10 @@ export default class Tree extends Component<TreeProps, TreeState> {
         // Template definitions remain the same
         FamilyTree.SEARCH_PLACEHOLDER = "CARI";
         FamilyTree.templates.base.defs =
-            `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
+            `<g transform="matrix(0.05,0,0,0.05,-12,-9)" id="heart">
+        <path fill="#fc71e5ff" d="M438.482,58.61c-24.7-26.549-59.311-41.655-95.573-41.711c-36.291,0.042-70.938,15.14-95.676,41.694l-8.431,8.909  l-8.431-8.909C181.284,5.762,98.663,2.728,45.832,51.815c-2.341,2.176-4.602,4.436-6.778,6.778 c-52.072,56.166-52.072,142.968,0,199.134l187.358,197.581c6.482,6.843,17.284,7.136,24.127,0.654 c0.224-0.212,0.442-0.43,0.654-0.654l187.29-197.581C490.551,201.567,490.551,114.77,438.482,58.61z"/>
+        </g>
+        <g transform="matrix(1,0,0,1,0,0)" id="dot"></g>
             <g id="base_node_menu" style="cursor:pointer;">
                 <rect x="0" y="0" fill="transparent" width="22" height="22"></rect>
                 <circle cx="4" cy="11" r="2" fill="#4A4A4A"></circle>
@@ -250,17 +253,24 @@ export default class Tree extends Component<TreeProps, TreeState> {
             },
         });
 
+
+        this.family.on('render-link', function (sender: any, args: any) {
+            if (args.cnode.ppid != undefined) {
+                args.html += '<use xlink:href="#heart" x="' + args.p.xa + '" y="' + args.p.ya + '"/>';
+            }
+        });
+        
         // Event listener for node click
-        // this.family.on('click', (sender: any, args: any) => {
-        //     if (args.node) {
-        //         const nodeData: NodeData = this.family.get(args.node.id);
-        //         console.log('Node clicked:', nodeData); // Debug log
-        //         this.setState({
-        //             selectedNode: nodeData,
-        //             sidebarOpen: true
-        //         });
-        //     }
-        // });
+        this.family.on('click', (sender: any, args: any) => {
+            if (args.node) {
+                const nodeData: NodeData = this.family.get(args.node.id);
+                console.log('Node clicked:', nodeData); // Debug log
+                this.setState({
+                    selectedNode: nodeData,
+                    sidebarOpen: true
+                });
+            }
+        });
 
         // Alternative event listener for mobile touch
         // this.family.on('nodeclick', (sender: any, args: any) => {
