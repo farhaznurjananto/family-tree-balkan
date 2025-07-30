@@ -564,7 +564,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
       // Bandingkan dengan data sebelumnya untuk mendeteksi node yang dihapus
       const deletedNodes = previousJsonNodes.filter(
-        oldNode => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
+        (oldNode: NodeData) => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
       );
 
       // Hapus gambar dari storage untuk node yang dihapus
@@ -881,25 +881,25 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         }}
         onMouseEnter={(e) => {
           if (window.innerWidth > 768) {
-            e.target.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.6)";
-            e.target.style.transform = "translateY(-2px)";
+            (e.target as HTMLElement).style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.6)";
+            (e.target as HTMLElement).style.transform = "translateY(-2px)";
           }
         }}
         onMouseLeave={(e) => {
           if (window.innerWidth > 768) {
-            e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
-            e.target.style.transform = "translateY(0)";
+            (e.target as HTMLElement).style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
+            (e.target as HTMLElement).style.transform = "translateY(0)";
           }
         }}
         // Touch events untuk mobile
         onTouchStart={(e) => {
           if (window.innerWidth <= 768) {
-            e.target.style.transform = "scale(0.95)";
+            (e.target as HTMLElement).style.transform = "scale(0.95)";
           }
         }}
         onTouchEnd={(e) => {
           if (window.innerWidth <= 768) {
-            e.target.style.transform = "scale(1)";
+            (e.target as HTMLElement).style.transform = "scale(1)";
           }
         }}
       >
