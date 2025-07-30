@@ -287,7 +287,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     imageSrc: "",
     nodeId: "",
     position: { x: 100, y: 100 },
-  })
+  });
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
@@ -370,21 +370,21 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file || !idNode) return;
-  
+
       // Reset input value
-      event.target.value = '';
-  
+      event.target.value = "";
+
       // Get better position - center of screen atau dekat dengan form
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       const modalWidth = 420;
       const modalHeight = 450;
-      
+
       const position = {
         x: Math.max(50, (viewportWidth - modalWidth) / 2), // Center horizontally
         y: Math.max(50, (viewportHeight - modalHeight) / 2), // Center vertically
       };
-  
+
       // Create preview URL and open crop modal
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -401,62 +401,65 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     [idNode]
   );
 
-  const handleCropConfirm = useCallback((croppedFile: File) => {
-    const nodeId = cropModal.nodeId;
-    if (!nodeId) return;
-  
-    // Get current photo URL from hidden input
-    const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
-    const oldPhotoUrl = hiddenInput?.value || "";
-  
-    // Store cropped and compressed file for upload
-    pendingImageUploads[nodeId] = {
-      file: croppedFile,
-      oldPhotoUrl: oldPhotoUrl || undefined,
-    };
-  
-    // Preview image
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      
-      // Update preview image in form
-      const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
-      if (imgElement) {
-        imgElement.src = result;
-      }
-  
-      // Update hidden input value temporarily for preview
+  const handleCropConfirm = useCallback(
+    (croppedFile: File) => {
+      const nodeId = cropModal.nodeId;
+      if (!nodeId) return;
+
+      // Get current photo URL from hidden input
       const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
-      if (hiddenInput) {
-        hiddenInput.value = result;
-      }
-  
-      // Show change photo button and hide file input
-      const fileInput = document.querySelector('input[type="file"][data-binding="photo"]') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.style.display = "none";
-  
-        // Add change photo button if not exists
-        const container = fileInput.closest(".input-file-field");
-        if (container && !container.querySelector("button")) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.textContent = "Ganti Foto";
-          button.style.cssText = "background: #039be5; color: #fff; border: 1px solid #039be5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; height: 100%;";
-          button.onclick = () => fileInput.click();
-          container.appendChild(button);
+      const oldPhotoUrl = hiddenInput?.value || "";
+
+      // Store cropped and compressed file for upload
+      pendingImageUploads[nodeId] = {
+        file: croppedFile,
+        oldPhotoUrl: oldPhotoUrl || undefined,
+      };
+
+      // Preview image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+
+        // Update preview image in form
+        const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
+        if (imgElement) {
+          imgElement.src = result;
         }
-      }
-    };
-    reader.readAsDataURL(croppedFile);
-  
-    // Close crop modal
-    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
-  }, [cropModal.nodeId]);
+
+        // Update hidden input value temporarily for preview
+        const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+        if (hiddenInput) {
+          hiddenInput.value = result;
+        }
+
+        // Show change photo button and hide file input
+        const fileInput = document.querySelector('input[type="file"][data-binding="photo"]') as HTMLInputElement;
+        if (fileInput) {
+          fileInput.style.display = "none";
+
+          // Add change photo button if not exists
+          const container = fileInput.closest(".input-file-field");
+          if (container && !container.querySelector("button")) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "Ganti Foto";
+            button.style.cssText = "background: #039be5; color: #fff; border: 1px solid #039be5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; height: 100%;";
+            button.onclick = () => fileInput.click();
+            container.appendChild(button);
+          }
+        }
+      };
+      reader.readAsDataURL(croppedFile);
+
+      // Close crop modal
+      setCropModal({ isOpen: false, imageSrc: "", nodeId: "", position: { x: 100, y: 100 } });
+    },
+    [cropModal.nodeId]
+  );
 
   const handleCropCancel = useCallback(() => {
-    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
+    setCropModal({ isOpen: false, imageSrc: "", nodeId: "", position: { x: 100, y: 100 } });
   }, []);
 
   const handleDialogOpen = useCallback((status: boolean) => {
@@ -501,15 +504,12 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
   const handleSaveTree = useCallback(async () => {
     if (!treeRef.current) return;
-  
+
     try {
       xmlSnapshotRef.current = treeRef.current.getXML();
       const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-      const { data: updatedData, error } = await supabase
-        .from("trees")
-        .update({ file: jsonNodes })
-        .eq("id", dataTree.id);
-  
+      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
       if (error) {
         console.error("Error saving tree:", error);
         alert("Error saving tree");
@@ -690,8 +690,9 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     //     })();
     //   }
     // });
+    // treeRef.current.on("", (sender: any, args: any) => {});
 
-    treeRef.current.on("update", (sender: any, args: any) => {
+    treeRef.current.onUpdateNode((args) => {
       if (args.updateNodesData && args.updateNodesData.length > 0) {
         (async () => {
           // Process each node that has pending image uploads
@@ -699,16 +700,13 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
             const nodeData = args.updateNodesData[i];
             args.updateNodesData[i] = await processPendingUploads(nodeData);
           }
-    
+
           // Save updated tree to database after all uploads are complete
           try {
             xmlSnapshotRef.current = treeRef.current?.getXML() || "";
             const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
-            const { data: updateResult, error: dbError } = await supabase
-              .from("trees")
-              .update({ file: jsonNodes })
-              .eq("id", dataTree.id);
-    
+            const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
             if (dbError) {
               console.error("Error saving tree:", dbError);
               alert("Error menyimpan ke database");
@@ -727,6 +725,39 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       }
     });
 
+    // treeRef.current.on("update", (sender: any, args: any) => {
+    //   if (args.updateNodesData && args.updateNodesData.length > 0) {
+    //     (async () => {
+    //       // Process each node that has pending image uploads
+    //       for (let i = 0; i < args.updateNodesData.length; i++) {
+    //         const nodeData = args.updateNodesData[i];
+    //         args.updateNodesData[i] = await processPendingUploads(nodeData);
+    //       }
+
+    //       // Save updated tree to database after all uploads are complete
+    //       try {
+    //         xmlSnapshotRef.current = treeRef.current?.getXML() || "";
+    //         const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
+    //         const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
+
+    //         if (dbError) {
+    //           console.error("Error saving tree:", dbError);
+    //           alert("Error menyimpan ke database");
+    //         } else {
+    //           console.log("Tree saved successfully:", updateResult);
+    //           // PANGGIL onUpdate SETELAH BERHASIL SAVE
+    //           if (onUpdate) {
+    //             await onUpdate();
+    //           }
+    //         }
+    //       } catch (error) {
+    //         console.error("Error saving tree:", error);
+    //         alert("Error menyimpan tree");
+    //       }
+    //     })();
+    //   }
+    // });
+
     return () => {
       // Cleanup
       if (treeRef.current) {
@@ -739,28 +770,11 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
   return (
     <>
-      <Dialog
-        status={dialogStatus}
-        id={treeMetadata.id}
-        name={treeMetadata.name}
-        description={treeMetadata.description}
-        handleDialogClose={handleDialogClose}
-        onUpdateSuccess={handleUpdateSuccess}
-      />
+      <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
 
-      <ImageCropModal
-        isOpen={cropModal.isOpen}
-        imageSrc={cropModal.imageSrc}
-        position={cropModal.position}
-        onCancel={handleCropCancel}
-        onConfirm={handleCropConfirm}
-      />
+      <ImageCropModal isOpen={cropModal.isOpen} imageSrc={cropModal.imageSrc} position={cropModal.position} onCancel={handleCropCancel} onConfirm={handleCropConfirm} />
 
-      {isUploading && (
-        <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">
-          Uploading image...
-        </div>
-      )}
+      {isUploading && <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded">Uploading image...</div>}
 
       <div
         id="tree"

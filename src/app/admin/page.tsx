@@ -3,7 +3,7 @@
 import Tree from "@/components/tree";
 import supabase from "@/libs/db";
 import { ITree } from "@/types/tree";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
@@ -12,6 +12,26 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
+
+  // Perbaikan untuk race condition
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && !fetchingRef.current) {
+        const now = Date.now();
+        // Hanya refresh jika sudah lebih dari 3 detik sejak fetch terakhir
+        if (now - lastFetchTime > 3000) {
+          fetchTrees(user.id);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [user, lastFetchTime]);
 
   // Auth check dan session management
   useEffect(() => {
@@ -71,20 +91,41 @@ export default function AdminPage() {
 
   // Fetch trees berdasarkan user yang login
   const fetchTrees = async (userId: string) => {
+    // Prevent multiple simultaneous calls
+    if (fetchingRef.current) {
+      console.log("Fetch already in progress, skipping...");
+      return;
+    }
+
     try {
+      fetchingRef.current = true;
       setLoading(true);
-      const { data, error } = await supabase.from("trees").select("*").eq("user_id", userId); // Filter berdasarkan user yang login
+      setError(null); // Clear previous errors
+      setLastFetchTime(Date.now()); // Track waktu fetch
+
+      console.log("Fetching trees for user:", userId);
+
+      // Add timeout untuk network request
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 10000));
+
+      const fetchPromise = supabase.from("trees").select("*").eq("user_id", userId);
+
+      const { data, error } = (await Promise.race([fetchPromise, timeoutPromise])) as any;
 
       if (error) {
         console.error("Error fetching trees:", error);
+        setError(error.message || "Failed to fetch trees");
         throw error;
       } else {
         setTrees(data as ITree[]);
+        console.log("Trees loaded successfully:", data.length);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Unexpected error fetching trees:", error);
+      setError(error.message || "Network error occurred");
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   };
 
