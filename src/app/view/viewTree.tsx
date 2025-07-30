@@ -234,6 +234,12 @@ export default class Tree extends Component<TreeProps, TreeState> {
                 ...node,
                 photo: node.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIzMiIgdmlld0JveD0iMCAwIDE2OCAyMzIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjMyIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTE2KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K'
             })),
+            miniMap: true,
+            toolbar: {
+                zoom: true,
+                fit: true,
+                expandAll: true,
+            },
             nodeMenu: {
                 details: {
                     text: "Details", onClick: (nodeId: string) => {
