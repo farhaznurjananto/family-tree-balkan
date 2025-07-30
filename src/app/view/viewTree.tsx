@@ -187,7 +187,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
         FamilyTree.templates.myTemplate.field_0 =
             FamilyTree.templates.myTemplate_male.field_0 =
             FamilyTree.templates.myTemplate_female.field_0 =
-            `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+            `<text data-width="100" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
         // Image styling
         FamilyTree.templates.myTemplate.img_0 =
@@ -223,7 +223,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
             FamilyTree.templates[templateName].size = [184, 270];
             FamilyTree.templates[templateName].node =
                 `<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="${placeholderColors[templateName as keyof typeof placeholderColors]}" stroke="#aeaeae" rx="15" ry="15"></rect>
-                <text data-width="182" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add ${templateName.charAt(0).toUpperCase() + templateName.slice(1)}</text>`;
+                <text data-width="180" data-text-overflow="ellipsis"  style="font-size: 20px; font-weight: bold" fill="#4A4A4A" x="92" y="140" text-anchor="middle">Add ${templateName.charAt(0).toUpperCase() + templateName.slice(1)}</text>`;
         });
 
         // Initialize FamilyTree
@@ -259,7 +259,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
                 args.html += '<use xlink:href="#heart" x="' + args.p.xa + '" y="' + args.p.ya + '"/>';
             }
         });
-        
+
         // Event listener for node click
         this.family.on('click', (sender: any, args: any) => {
             if (args.node) {
@@ -505,12 +505,18 @@ export default class Tree extends Component<TreeProps, TreeState> {
                             {/* Name */}
                             <div style={{
                                 textAlign: 'center',
+                                margin: 'auto',
                                 marginBottom: '20px',
                                 fontSize: isMobile ? '24px' : '32px',
                                 fontWeight: 'bold',
                                 color: '#F8F8F8',
                                 textTransform: 'uppercase',
-                                lineHeight: isMobile ? '1.2' : '1'
+                                lineHeight: isMobile ? '1.2' : '1',
+                                // Ellipsis styling
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: '50%'
                             }}>
                                 {selectedNode.name}
                             </div>
