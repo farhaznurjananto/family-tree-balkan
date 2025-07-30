@@ -564,7 +564,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
       // Bandingkan dengan data sebelumnya untuk mendeteksi node yang dihapus
       const deletedNodes = previousJsonNodes.filter(
-        oldNode => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
+        (oldNode: NodeData) => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
       );
 
       // Hapus gambar dari storage untuk node yang dihapus
