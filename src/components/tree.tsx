@@ -23,7 +23,10 @@ let pendingImageUploads: { [nodeId: string]: { file: File; oldPhotoUrl?: string 
 
 FamilyTree.miniMap.selectorBackgroundColor = "#2b2b2b";
 FamilyTree.SEARCH_PLACEHOLDER = "CARI";
-FamilyTree.templates.base.defs = `<g transform="matrix(1,0,0,1,0,0)" id="dot"><circle class="ba-fill" cx="0" cy="0" r="5" stroke="#aeaeae" stroke-width="1"></circle></g>
+FamilyTree.templates.base.defs = `<g transform="matrix(0.05,0,0,0.05,-12,-9)" id="heart">
+        <path fill="#fc71e5ff" d="M438.482,58.61c-24.7-26.549-59.311-41.655-95.573-41.711c-36.291,0.042-70.938,15.14-95.676,41.694l-8.431,8.909  l-8.431-8.909C181.284,5.762,98.663,2.728,45.832,51.815c-2.341,2.176-4.602,4.436-6.778,6.778 c-52.072,56.166-52.072,142.968,0,199.134l187.358,197.581c6.482,6.843,17.284,7.136,24.127,0.654 c0.224-0.212,0.442-0.43,0.654-0.654l187.29-197.581C490.551,201.567,490.551,114.77,438.482,58.61z"/>
+        </g>
+        <g transform="matrix(1,0,0,1,0,0)" id="dot"></g>
             <g id="base_node_menu" style="cursor:pointer;">
                 <rect x="0" y="0" fill="transparent" width="22" height="22"></rect>
                 <circle cx="4" cy="11" r="2" fill="#4A4A4A"></circle>
@@ -129,13 +132,13 @@ FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" str
 FamilyTree.templates.myTemplate.field_0 =
   FamilyTree.templates.myTemplate_male.field_0 =
   FamilyTree.templates.myTemplate_female.field_0 =
-    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+  `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
 // Image styling - gambar diturunkan dan ukurannya disesuaikan
 FamilyTree.templates.myTemplate.img_0 =
   FamilyTree.templates.myTemplate_male.img_0 =
   FamilyTree.templates.myTemplate_female.img_0 =
-    `<use xlink:href="#base_img_0_stroke" />
+  `<use xlink:href="#base_img_0_stroke" />
             <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
             <g style="display:none" class="default-avatar">
@@ -598,6 +601,11 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"></path></svg>`,
           onClick: () => handleDialogOpen(true),
         },
+        // save: {
+        //   text: "Save",
+        //   icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M219.31,72,184,36.69A15.86,15.86,0,0,0,172.69,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V83.31A15.86,15.86,0,0,0,219.31,72ZM168,208H88V152h80Zm40,0H184V152a16,16,0,0,0-16-16H88a16,16,0,0,0-16,16v56H48V48H172.69L208,83.31ZM160,72a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h56A8,8,0,0,1,160,72Z"></path></svg>`,
+        //   onClick: handleSaveTree,
+        // },
         importCSV: {
           text: "Import CSV",
           icon: FamilyTree.icon.csv(24, 24, "grey"),
@@ -658,6 +666,12 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     // Event handler untuk click node
     treeRef.current.on("click", (sender: any, args: any) => {
       setIdNode(args.node.id);
+    });
+
+    treeRef.current.on('render-link', function (sender: any, args: any) {
+      if (args.cnode.ppid != undefined) {
+        args.html += '<use xlink:href="#heart" x="' + args.p.xa + '" y="' + args.p.ya + '"/>';
+      }
     });
 
     // Handle form submission - process pending uploads saat Save and Close
@@ -761,6 +775,66 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           Uploading image...
         </div>
       )}
+
+      <button
+        onClick={handleSaveTree}
+        style={{
+          position: "fixed",
+          // Desktop: kiri atas, Mobile: kanan atas
+          top: window.innerWidth > 768 ? "28px" : "85px",
+          left: window.innerWidth > 768 ? "160px" : "auto",
+          right: window.innerWidth > 768 ? "auto" : "18px",
+          // Mobile: ukuran lebih kecil dan posisi yang aman
+          padding: window.innerWidth > 768 ? "12px 24px" : "10px 16px",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: window.innerWidth > 768 ? "25px" : "20px",
+          cursor: "pointer",
+          fontWeight: "600",
+          fontSize: window.innerWidth > 768 ? "16px" : "14px",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          boxShadow: window.innerWidth > 768 ? "0 4px 15px rgba(102, 126, 234, 0.4)" : "0 2px 10px rgba(102, 126, 234, 0.3)",
+          transition: "all 0.3s ease",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: window.innerWidth > 768 ? "8px" : "6px",
+          minWidth: window.innerWidth > 768 ? "100px" : "80px",
+          justifyContent: "center",
+          // Touch-friendly pada mobile
+          minHeight: window.innerWidth <= 768 ? "44px" : "auto",
+        }}
+        onMouseEnter={(e) => {
+          if (window.innerWidth > 768) {
+            e.target.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.6)";
+            e.target.style.transform = "translateY(-2px)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (window.innerWidth > 768) {
+            e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
+            e.target.style.transform = "translateY(0)";
+          }
+        }}
+        // Touch events untuk mobile
+        onTouchStart={(e) => {
+          if (window.innerWidth <= 768) {
+            e.target.style.transform = "scale(0.95)";
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (window.innerWidth <= 768) {
+            e.target.style.transform = "scale(1)";
+          }
+        }}
+      >
+        <svg width={window.innerWidth > 768 ? "16" : "14"} height={window.innerWidth > 768 ? "16" : "14"} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12ZM6 6H15V10H6V6Z" />
+        </svg>
+        {window.innerWidth > 480 ? "Save" : ""}
+      </button>
 
       <div
         id="tree"
