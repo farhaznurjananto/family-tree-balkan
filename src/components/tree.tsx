@@ -15,67 +15,67 @@ import ImageCropModal from "./ImageCropModal";
 
 // Helper functions untuk marriage status
 const getMarriageStatus = (node: NodeData, partnerId: string): "married" | "divorced" => {
-  const status = node.marriageStatuses?.find(ms => ms.partnerId === partnerId);
+  const status = node.marriageStatuses?.find((ms) => ms.partnerId === partnerId);
   return status?.status || "married";
 };
 
 const updateMarriageStatus = (nodes: NodeData[], nodeId: string, partnerId: string, status: "married" | "divorced") => {
-  console.log('🔄 Updating marriage status:', {
+  console.log("🔄 Updating marriage status:", {
     nodeId,
     partnerId,
     newStatus: status,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   // Update status di kedua node (pasangan)
-  const nodeIndex = nodes.findIndex(n => n.id === nodeId);
-  const partnerIndex = nodes.findIndex(n => n.id === partnerId);
+  const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
+  const partnerIndex = nodes.findIndex((n) => n.id === partnerId);
 
-  console.log('📍 Found node indices:', { nodeIndex, partnerIndex });
+  console.log("📍 Found node indices:", { nodeIndex, partnerIndex });
 
   if (nodeIndex !== -1) {
     if (!nodes[nodeIndex].marriageStatuses) {
       nodes[nodeIndex].marriageStatuses = [];
-      console.log('✨ Created new marriageStatuses array for node:', nodeId);
+      console.log("✨ Created new marriageStatuses array for node:", nodeId);
     }
 
-    const existingStatus = nodes[nodeIndex].marriageStatuses.find(ms => ms.partnerId === partnerId);
+    const existingStatus = nodes[nodeIndex].marriageStatuses.find((ms) => ms.partnerId === partnerId);
     if (existingStatus) {
       const oldStatus = existingStatus.status;
       existingStatus.status = status;
-      console.log('📝 Updated existing status for node', nodeId, ':', { oldStatus, newStatus: status });
+      console.log("📝 Updated existing status for node", nodeId, ":", { oldStatus, newStatus: status });
     } else {
       nodes[nodeIndex].marriageStatuses.push({
         partnerId: partnerId,
-        status: status
+        status: status,
       });
-      console.log('➕ Added new marriage status for node', nodeId, ':', { partnerId, status });
+      console.log("➕ Added new marriage status for node", nodeId, ":", { partnerId, status });
     }
   }
 
   if (partnerIndex !== -1) {
     if (!nodes[partnerIndex].marriageStatuses) {
       nodes[partnerIndex].marriageStatuses = [];
-      console.log('✨ Created new marriageStatuses array for partner:', partnerId);
+      console.log("✨ Created new marriageStatuses array for partner:", partnerId);
     }
 
-    const existingStatus = nodes[partnerIndex].marriageStatuses.find(ms => ms.partnerId === nodeId);
+    const existingStatus = nodes[partnerIndex].marriageStatuses.find((ms) => ms.partnerId === nodeId);
     if (existingStatus) {
       const oldStatus = existingStatus.status;
       existingStatus.status = status;
-      console.log('📝 Updated existing status for partner', partnerId, ':', { oldStatus, newStatus: status });
+      console.log("📝 Updated existing status for partner", partnerId, ":", { oldStatus, newStatus: status });
     } else {
       nodes[partnerIndex].marriageStatuses.push({
         partnerId: nodeId,
-        status: status
+        status: status,
       });
-      console.log('➕ Added new marriage status for partner', partnerId, ':', { partnerId: nodeId, status });
+      console.log("➕ Added new marriage status for partner", partnerId, ":", { partnerId: nodeId, status });
     }
   }
 
-  console.log('✅ Marriage status update completed. Updated nodes:', {
+  console.log("✅ Marriage status update completed. Updated nodes:", {
     node: nodes[nodeIndex]?.marriageStatuses,
-    partner: nodes[partnerIndex]?.marriageStatuses
+    partner: nodes[partnerIndex]?.marriageStatuses,
   });
 
   return nodes;
@@ -200,13 +200,13 @@ FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" str
 FamilyTree.templates.myTemplate.field_0 =
   FamilyTree.templates.myTemplate_male.field_0 =
   FamilyTree.templates.myTemplate_female.field_0 =
-  `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
 // Image styling - gambar diturunkan dan ukurannya disesuaikan
 FamilyTree.templates.myTemplate.img_0 =
   FamilyTree.templates.myTemplate_male.img_0 =
   FamilyTree.templates.myTemplate_female.img_0 =
-  `<use xlink:href="#base_img_0_stroke" />
+    `<use xlink:href="#base_img_0_stroke" />
             <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
             <g style="display:none" class="default-avatar">
@@ -400,22 +400,73 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previousJsonNodes, setPreviousJsonNodes] = useState(dataTree.file);
   const [currentJsonNodes, setCurrentJsonNodes] = useState(dataTree.file);
+  const [marriageStatusOptions, setMarriageStatusOptions] = useState([
+    // { value: "married", text: "Married" },
+    // { value: "divorced", text: "Divorced" },
+  ]);
 
-  let jsonNodes
+  let jsonNodes;
+
+  function updateMarriageStatus(node: any, partnerId: string, status: string, selfId?: string) {
+    if (!node) return;
+
+    const currentStatuses = node.marriageStatuses || [];
+    const hasStatus = currentStatuses.some((s: any) => s.partnerId === partnerId);
+
+    node.marriageStatuses = hasStatus ? currentStatuses.map((s: any) => (s.partnerId === partnerId ? { ...s, status } : s)) : [...currentStatuses, { partnerId, status }];
+  }
 
   const [cropModal, setCropModal] = useState({
     isOpen: false,
     imageSrc: "",
     nodeId: "",
     position: { x: 100, y: 100 },
-  })
+  });
+
+  function customizeDeceasedNodes() {
+    const allNodes = treeRef.current?.config.nodes ?? [];
+
+    // Loop melalui DOM nodes, bukan data nodes
+    const domNodes = document.querySelectorAll("[data-n-id]");
+    domNodes.forEach((domNode) => {
+      const nodeId = domNode.getAttribute("data-n-id");
+
+      // Cari data node yang sesuai dengan ID
+      const nodeData = allNodes.find((n) => n.id === nodeId);
+
+      if (nodeData && nodeData.deathDate && nodeData.deathDate.trim() !== "") {
+        // Node sudah meninggal, ubah styling
+        const rect = domNode.querySelector("rect");
+        const texts = domNode.querySelectorAll("text");
+        const images = domNode.querySelectorAll("image");
+
+        if (rect) {
+          // Ubah background menjadi abu-abu
+          rect.setAttribute("fill", "#9ca3af");
+          // Tambah stroke putus-putus
+          rect.setAttribute("stroke", "#6b7280");
+          rect.setAttribute("stroke-width", "2px");
+          rect.setAttribute("stroke-dasharray", "5,5");
+        }
+
+        // Ubah opacity text menjadi sedikit transparan
+        texts.forEach((text) => {
+          text.setAttribute("opacity", "0.8");
+        });
+
+        // Ubah opacity gambar menjadi sedikit transparan
+        images.forEach((img) => {
+          img.setAttribute("opacity", "0.7");
+        });
+      }
+    });
+  }
 
   const [treeMetadata, setTreeMetadata] = useState({
     id: dataTree.id,
     name: dataTree.name,
     description: dataTree.description,
   });
-
 
   // Move nodeBinding inside useMemo to prevent unnecessary re-renders
   const nodeBinding = useMemo(
@@ -494,7 +545,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       if (!file || !idNode) return;
 
       // Reset input value
-      event.target.value = '';
+      event.target.value = "";
 
       // Get better position - center of screen atau dekat dengan form
       const viewportWidth = window.innerWidth;
@@ -523,112 +574,112 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     [idNode]
   );
 
-  const handleFileSelectWithNodeId = useCallback(
-    (nodeId: string, inputId?: string, event?: React.ChangeEvent<HTMLInputElement>) => {
-      let file: File | undefined;
+  const handleFileSelectWithNodeId = useCallback((nodeId: string, inputId?: string, event?: React.ChangeEvent<HTMLInputElement>) => {
+    let file: File | undefined;
 
-      if (event) {
-        // Dipanggil dari onChange
-        file = event.target.files?.[0];
-      } else if (inputId) {
-        // Dipanggil dari button click, trigger file input
-        const fileInput = document.getElementById(inputId) as HTMLInputElement;
-        if (fileInput) {
-          fileInput.click();
-          return;
-        }
+    if (event) {
+      // Dipanggil dari onChange
+      file = event.target.files?.[0];
+    } else if (inputId) {
+      // Dipanggil dari button click, trigger file input
+      const fileInput = document.getElementById(inputId) as HTMLInputElement;
+      if (fileInput) {
+        fileInput.click();
+        return;
       }
+    }
 
-      if (!file || !nodeId) return;
+    if (!file || !nodeId) return;
 
-      // Reset input value jika ada event
-      if (event) {
-        event.target.value = "";
-      }
+    // Reset input value jika ada event
+    if (event) {
+      event.target.value = "";
+    }
 
-      // Get better position - center of screen atau dekat dengan form
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const modalWidth = 420;
-      const modalHeight = 450;
+    // Get better position - center of screen atau dekat dengan form
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const modalWidth = 420;
+    const modalHeight = 450;
 
-      const position = {
-        x: Math.max(50, (viewportWidth - modalWidth) / 2),
-        y: Math.max(50, (viewportHeight - modalHeight) / 2),
-      };
-
-      // Create preview URL and open crop modal
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setCropModal({
-          isOpen: true,
-          imageSrc: result,
-          nodeId: nodeId,
-          position,
-        });
-      };
-      reader.readAsDataURL(file);
-    },
-    []
-  );
-
-  const handleCropConfirm = useCallback((croppedFile: File) => {
-    const nodeId = cropModal.nodeId;
-    if (!nodeId) return;
-
-    // Get current photo URL from hidden input
-    const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
-    const oldPhotoUrl = hiddenInput?.value || "";
-
-    // Store cropped and compressed file for upload
-    pendingImageUploads[nodeId] = {
-      file: croppedFile,
-      oldPhotoUrl: oldPhotoUrl || undefined,
+    const position = {
+      x: Math.max(50, (viewportWidth - modalWidth) / 2),
+      y: Math.max(50, (viewportHeight - modalHeight) / 2),
     };
 
-    // Preview image
+    // Create preview URL and open crop modal
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-
-      // Update preview image in form
-      const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
-      if (imgElement) {
-        imgElement.src = result;
-      }
-
-      // Update hidden input value temporarily for preview
-      const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
-      if (hiddenInput) {
-        hiddenInput.value = result;
-      }
-
-      // Show change photo button and hide file input
-      const fileInput = document.querySelector('input[type="file"][data-binding="photo"]') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.style.display = "none";
-
-        // Add change photo button if not exists
-        const container = fileInput.closest(".input-file-field");
-        if (container && !container.querySelector("button")) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.textContent = "Ganti Foto";
-          button.style.cssText = "background: #039be5; color: #fff; border: 1px solid #039be5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; height: 100%;";
-          button.onclick = () => fileInput.click();
-          container.appendChild(button);
-        }
-      }
+      setCropModal({
+        isOpen: true,
+        imageSrc: result,
+        nodeId: nodeId,
+        position,
+      });
     };
-    reader.readAsDataURL(croppedFile);
+    reader.readAsDataURL(file);
+  }, []);
 
-    // Close crop modal
-    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
-  }, [cropModal.nodeId]);
+  const handleCropConfirm = useCallback(
+    (croppedFile: File) => {
+      const nodeId = cropModal.nodeId;
+      if (!nodeId) return;
+
+      // Get current photo URL from hidden input
+      const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+      const oldPhotoUrl = hiddenInput?.value || "";
+
+      // Store cropped and compressed file for upload
+      pendingImageUploads[nodeId] = {
+        file: croppedFile,
+        oldPhotoUrl: oldPhotoUrl || undefined,
+      };
+
+      // Preview image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+
+        // Update preview image in form
+        const imgElement = document.querySelector(`img[alt="Current photo"]`) as HTMLImageElement;
+        if (imgElement) {
+          imgElement.src = result;
+        }
+
+        // Update hidden input value temporarily for preview
+        const hiddenInput = document.querySelector('input[type="hidden"][data-binding="photo"]') as HTMLInputElement;
+        if (hiddenInput) {
+          hiddenInput.value = result;
+        }
+
+        // Show change photo button and hide file input
+        const fileInput = document.querySelector('input[type="file"][data-binding="photo"]') as HTMLInputElement;
+        if (fileInput) {
+          fileInput.style.display = "none";
+
+          // Add change photo button if not exists
+          const container = fileInput.closest(".input-file-field");
+          if (container && !container.querySelector("button")) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "Ganti Foto";
+            button.style.cssText = "background: #039be5; color: #fff; border: 1px solid #039be5; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; height: 100%;";
+            button.onclick = () => fileInput.click();
+            container.appendChild(button);
+          }
+        }
+      };
+      reader.readAsDataURL(croppedFile);
+
+      // Close crop modal
+      setCropModal({ isOpen: false, imageSrc: "", nodeId: "", position: { x: 100, y: 100 } });
+    },
+    [cropModal.nodeId]
+  );
 
   const handleCropCancel = useCallback(() => {
-    setCropModal({ isOpen: false, imageSrc: '', nodeId: '', position: { x: 100, y: 100 } });
+    setCropModal({ isOpen: false, imageSrc: "", nodeId: "", position: { x: 100, y: 100 } });
   }, []);
 
   const handleDialogOpen = useCallback((status: boolean) => {
@@ -674,24 +725,25 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
   const handleSaveTree = useCallback(async () => {
     if (!treeRef.current) return;
 
-    console.log('💾 Starting tree save process...');
+    console.log("💾 Starting tree save process...");
 
     try {
       xmlSnapshotRef.current = treeRef.current.getXML();
       const jsonNodes = convertXmlToJson(xmlSnapshotRef.current);
 
-      console.log('📄 Converted XML to JSON:', {
+      console.log("📄 Converted XML to JSON:", {
         nodeCount: jsonNodes.length,
-        nodesWithMarriageStatus: jsonNodes.filter((n: any) => n.marriageStatuses).length
+        nodesWithMarriageStatus: jsonNodes.filter((n: any) => n.marriageStatuses).length,
       });
 
       // Bandingkan dengan data sebelumnya untuk mendeteksi node yang dihapus
-      const deletedNodes = previousJsonNodes.filter(
-        (oldNode: NodeData) => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
-      );
+      const deletedNodes = previousJsonNodes.filter((oldNode: NodeData) => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id));
 
       if (deletedNodes.length > 0) {
-        console.log('🗑️ Nodes to be deleted:', deletedNodes.map(n => ({ id: n.id, name: n.name })));
+        console.log(
+          "🗑️ Nodes to be deleted:",
+          deletedNodes.map((n) => ({ id: n.id, name: n.name }))
+        );
       }
 
       // Hapus gambar dari storage untuk node yang dihapus
@@ -704,10 +756,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         }
       }
 
-      const { data: updatedData, error } = await supabase
-        .from("trees")
-        .update({ file: jsonNodes })
-        .eq("id", dataTree.id);
+      const { data: updatedData, error } = await supabase.from("trees").update({ file: jsonNodes }).eq("id", dataTree.id);
 
       if (error) {
         console.error("❌ Error saving tree:", error);
@@ -716,7 +765,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         console.log("✅ Tree saved successfully:", {
           treeId: dataTree.id,
           nodeCount: jsonNodes.length,
-          updatedData
+          updatedData,
         });
         // Update previousJsonNodes dengan data terbaru
         setPreviousJsonNodes(jsonNodes);
@@ -724,7 +773,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         // PANGGIL onUpdate SETELAH BERHASIL SAVE
         if (onUpdate) {
           await onUpdate();
-          console.log('🔄 Parent component notified of update');
+          console.log("🔄 Parent component notified of update");
         }
       }
     } catch (error) {
@@ -806,10 +855,10 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         const partner = currentNodes.find((n: any) => n.id === partnerId);
         if (partner) {
           const currentStatus = getMarriageStatus(data, partnerId);
-          options += `<option value="${partnerId}-married" ${currentStatus === 'married' ? 'selected' : ''}>
+          options += `<option value="${partnerId}-married" ${currentStatus === "married" ? "selected" : ""}>
                       ${partner.name} - Married
                     </option>`;
-          options += `<option value="${partnerId}-divorced" ${currentStatus === 'divorced' ? 'selected' : ''}>
+          options += `<option value="${partnerId}-divorced" ${currentStatus === "divorced" ? "selected" : ""}>
                       ${partner.name} - Divorced
                     </option>`;
         }
@@ -883,17 +932,17 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     // };
 
     (window as any).handleMarriageStatusChange = (nodeId: string, value: string) => {
-      console.log('🎯 Marriage status change triggered:', { nodeId, value });
+      console.log("🎯 Marriage status change triggered:", { nodeId, value });
 
       if (!value) {
-        console.log('⚠️ No value provided, exiting...');
+        console.log("⚠️ No value provided, exiting...");
         return;
       }
 
-      const [partnerId, status] = value.split('-');
+      const [partnerId, status] = value.split("-");
 
       // Update marriage status di currentJsonNodes state
-      setCurrentJsonNodes(prevNodes => {
+      setCurrentJsonNodes((prevNodes) => {
         const updatedNodes = updateMarriageStatus([...prevNodes], nodeId, partnerId, status as "married" | "divorced");
         console.log("Marriage status updated in currentJsonNodes:", updatedNodes);
 
@@ -909,7 +958,6 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       //   console.log('🎨 Tree redrawn to reflect marriage status changes');
       // }
     };
-
 
     const el = document.getElementById("tree");
     if (!el) return;
@@ -927,8 +975,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           node.photo ||
           (isUploading
             ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIxMCIgdmlld0JveD0iMCAwIDE2OCAyMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE2OCIgaGVpZ2h0PSIyMTAiIGZpbGw9IiMzZjNmNDYiIHJ4PSIxMCIgcnk9IjEwIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODQsIDEwNSkiPjxjaXJjbGUgY3g9IjAiIGN5PSIwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOUNBM0FGIiBzdHJva2Utd2lkdGg9IjMiPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMCAwIiB0bz0iMzYwIDAgMCIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz48L2NpcmNsZT48Y2lyY2xlIGN4PSIwIiBjeT0iLTIwIiByPSI0IiBmaWxsPSIjOUNBM0FGIj48YW5pbWF0ZVRyYW5zZm9ybSBhdHRyaWJ1dGVOYW1lPSJ0cmFuc2Zvcm0iIGF0dHJpYnV0ZVR5cGU9IlhNTCIgdHlwZT0icm90YXRlIiBmcm9tPSIwIDAgMCIgdG89IjM2MCAwIDAiIGR1cj0iMXMiIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIi8+PC9jaXJjbGU+PC9nPjx0ZXh0IHg9Ijg0IiB5PSIxNjAiIGZpbGw9IiM5Q0EzQUYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXBsb2FkaW5nLi4uPC90ZXh0Pjwvc3ZnPg=="
-            : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIxMCIgdmlld0JveD0iMCAwIDE2OCAyMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjEwIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTA1KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K"
-          ),
+            : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTY4IiBoZWlnaHQ9IjIxMCIgdmlld0JveD0iMCAwIDE2OCAyMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjgiIGhlaWdodD0iMjEwIiBmaWxsPSIjM2YzZjQ2IiByeD0iMTAiIHJ5PSIxMCIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4NCwgMTA1KSI+CjxwYXRoIGQ9Ik0tMjQgLTE2Qy0yNCAtMjcuMDQ1NyAtMTUuMDQ1NyAtMzYgLTQgLTM2QzcuMDQ1NyAtMzYgMTYgLTI3LjA0NTcgMTYgLTE2QzE2IC00Ljk1NDMgNy4wNDU3IDQgLTQgNEMtMTUuMDQ1NyA0IC0yNCAtNC45NTQzIC0yNCAtMTZaIiBmaWxsPSIjOUNBM0FGIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNLTQwIDQ0VjM2Qy00MCAyNC45NTQzIC0zMS4wNDU3IDE2IC0yMCAxNkgxMkMyMy4wNDU3IDE2IDMyIDI0Ljk1NDMgMzIgMzZWNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8L3N2Zz4K"),
       })),
       nodeBinding,
       menu: {
@@ -985,12 +1032,18 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
               { value: "female", text: "Female" },
             ],
           },
+          {
+            type: "select",
+            label: "Marriage Status",
+            binding: "marriageStatusSelect",
+            options: marriageStatusOptions,
+          },
           { type: "textbox", label: "Phone Number", binding: "phone" },
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
           { type: "textbox", label: "Occupation", binding: "occupation" },
           { type: "myTextArea", label: "Note", binding: "note" },
-          { type: "myMarriageStatus", label: "Marriage Status", binding: "marriageStatusSelect" },
+          // { type: "myMarriageStatus", label: "Marriage Status", binding: "marriageStatusSelect" },
           { type: "myInputFile", label: "Photo", binding: "photo" },
         ],
         buttons: {
@@ -1001,12 +1054,45 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     });
 
     // Event handler untuk click node
+    // treeRef.current.on("click", (sender: any, args: any) => {
+    //   setIdNode(args.node.id);
+    //   setMarriageStatusOptions([
+    //     // berisikan object
+
+    //   ]);
+    // });
+
     treeRef.current.on("click", (sender: any, args: any) => {
       setIdNode(args.node.id);
+
+      // Panggil fungsi generate marriage options
+      const partners = Array.isArray(args.node.pids) ? args.node.pids : [args.node.pids];
+      const currentNodes = dataTree.file || [];
+
+      const marriageStatusOptions = partners.flatMap((partnerId: string) => {
+        const partner = currentNodes.find((n: any) => n.id === partnerId);
+        if (!partner) return [];
+
+        // const currentStatus = getMarriageStatus(args.node, partnerId);
+
+        return [
+          {
+            value: `${partnerId}-married`,
+            text: `${partner.name} - Married`,
+          },
+          {
+            value: `${partnerId}-divorced`,
+            text: `${partner.name} - Divorced`,
+          },
+        ];
+      });
+      setMarriageStatusOptions(marriageStatusOptions);
     });
 
+    console.log("tesxtsfsdf", treeRef.current.config.nodes);
+
     // Handle render-link untuk mengubah warna garis berdasarkan marriage status
-    treeRef.current.on('render-link', function (sender: any, args: any) {
+    treeRef.current.on("render-link", function (sender: any, args: any) {
       if (args.cnode.ppid != undefined) {
         args.html += '<use xlink:href="#heart" x="' + args.p.xa + '" y="' + args.p.ya + '"/>';
       }
@@ -1020,20 +1106,17 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           const cnodeData = currentNodes.find((n: any) => n.id === args.cnode.id);
 
           // Check jika ini adalah garis pernikahan (partner relationship)
-          if (nodeData && cnodeData &&
-            ((nodeData.pids && nodeData.pids.includes(args.cnode.id)) ||
-              (cnodeData.pids && cnodeData.pids.includes(args.node.id)))) {
-
+          if (nodeData && cnodeData && ((nodeData.pids && nodeData.pids.includes(args.cnode.id)) || (cnodeData.pids && cnodeData.pids.includes(args.node.id)))) {
             const marriageStatus = getMarriageStatus(nodeData, args.cnode.id);
             const linkColor = marriageStatus === "divorced" ? "#FFC5BF" : "#C2A2F8";
 
-            console.log('💍 Rendering marriage link:', {
+            console.log("💍 Rendering marriage link:", {
               nodeId: args.node.id,
               partnerId: args.cnode.id,
               marriageStatus,
               linkColor,
               nodeData: nodeData.marriageStatuses,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             });
 
             // Update warna garis
@@ -1105,20 +1188,96 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     //   }
     // });
 
+    // treeRef.current.on("update", (sender: any, args: any) => {
+    //   console.log("🔄 Tree update event triggered:", {
+    //     hasUpdateData: !!args.updateNodesData,
+    //     nodeCount: args.updateNodesData?.length || 0,
+    //   });
+
+    //   if (args.updateNodesData && args.updateNodesData.length > 0) {
+    //     console.log(
+    //       "📝 Nodes being updated:",
+    //       args.updateNodesData.map((n: any) => ({
+    //         id: n.id,
+    //         name: n.name,
+    //         hasMarriageStatuses: !!n.marriageStatuses,
+    //         marriageStatusCount: n.marriageStatuses?.length || 0,
+    //       }))
+    //     );
+
+    //     (async () => {
+    //       // Process each node that has pending image uploads
+    //       for (let i = 0; i < args.updateNodesData.length; i++) {
+    //         const nodeData = args.updateNodesData[i];
+    //         console.log(`🖼️ Processing node ${i + 1}/${args.updateNodesData.length}:`, {
+    //           nodeId: nodeData.id,
+    //           hasPendingUpload: !!pendingImageUploads[nodeData.id],
+    //         });
+    //         args.updateNodesData[i] = await processPendingUploads(nodeData);
+    //       }
+
+    //       // Gabungkan perubahan dari form dengan currentJsonNodes yang sudah ada marriage status changes
+    //       const finalJsonNodes = currentJsonNodes.map((existingNode) => {
+    //         const updatedNode = args.updateNodesData.find((n: any) => n.id === existingNode.id);
+    //         if (updatedNode) {
+    //           // Merge data dari form dengan marriage status yang sudah diubah
+    //           return {
+    //             ...existingNode, // Marriage status dari currentJsonNodes
+    //             ...updatedNode, // Data baru dari form
+    //             marriageStatuses: existingNode.marriageStatuses || updatedNode.marriageStatuses, // Prioritaskan marriage status dari currentJsonNodes
+    //           };
+    //         }
+    //         return existingNode;
+    //       });
+
+    //       // Save updated tree to database
+    //       try {
+    //         console.log("💾 Saving final JSON to database:", {
+    //           treeId: dataTree.id,
+    //           nodeCount: finalJsonNodes.length,
+    //           nodesWithMarriageStatus: finalJsonNodes.filter((n: any) => n.marriageStatuses).length,
+    //         });
+
+    //         const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: finalJsonNodes }).eq("id", dataTree.id);
+
+    //         if (dbError) {
+    //           console.error("❌ Database error:", dbError);
+    //           alert("Error menyimpan ke database");
+    //         } else {
+    //           console.log("✅ Tree updated successfully in database:", updateResult);
+    //           setPreviousJsonNodes(finalJsonNodes);
+    //           setCurrentJsonNodes(finalJsonNodes); // Update currentJsonNodes juga
+
+    //           if (onUpdate) {
+    //             await onUpdate();
+    //             console.log("🔄 Parent component notified of update after node edit");
+    //           }
+    //         }
+    //       } catch (error) {
+    //         console.error("❌ Error in update process:", error);
+    //         alert("Error menyimpan tree");
+    //       }
+    //     })();
+    //   }
+    // });
 
     treeRef.current.on("update", (sender: any, args: any) => {
-      console.log('🔄 Tree update event triggered:', {
+      console.log("🔄 Tree update event triggered:", {
         hasUpdateData: !!args.updateNodesData,
-        nodeCount: args.updateNodesData?.length || 0
+        nodeCount: args.updateNodesData?.length || 0,
       });
 
       if (args.updateNodesData && args.updateNodesData.length > 0) {
-        console.log('📝 Nodes being updated:', args.updateNodesData.map((n: any) => ({
-          id: n.id,
-          name: n.name,
-          hasMarriageStatuses: !!n.marriageStatuses,
-          marriageStatusCount: n.marriageStatuses?.length || 0
-        })));
+        console.log(
+          "📝 Nodes being updated:",
+          args.updateNodesData.map((n: any) => ({
+            id: n.id,
+            name: n.name,
+            hasMarriageStatuses: !!n.marriageStatuses,
+            marriageStatusCount: n.marriageStatuses?.length || 0,
+            marriageStatusSelect: n.marriageStatusSelect || null,
+          }))
+        );
 
         (async () => {
           // Process each node that has pending image uploads
@@ -1126,20 +1285,37 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
             const nodeData = args.updateNodesData[i];
             console.log(`🖼️ Processing node ${i + 1}/${args.updateNodesData.length}:`, {
               nodeId: nodeData.id,
-              hasPendingUpload: !!pendingImageUploads[nodeData.id]
+              hasPendingUpload: !!pendingImageUploads[nodeData.id],
             });
             args.updateNodesData[i] = await processPendingUploads(nodeData);
+
+            // 🔗 Marriage status handling
+            if (nodeData.marriageStatusSelect) {
+              const [partnerId, status] = nodeData.marriageStatusSelect.split("-");
+              console.log(`💍 Updating marriage status for ${nodeData.id} ↔ ${partnerId}: ${status}`);
+
+              // Update node ini
+              updateMarriageStatus(args.updateNodesData[i], partnerId, status);
+
+              // Update partner node (di updateNodesData atau currentJsonNodes)
+              const partnerNode = args.updateNodesData.find((n: any) => n.id === partnerId) || currentJsonNodes.find((n: any) => n.id === partnerId);
+
+              if (partnerNode) {
+                updateMarriageStatus(partnerNode, nodeData.id, status);
+              } else {
+                console.warn(`⚠️ Partner node ${partnerId} not found`);
+              }
+            }
           }
 
-          // Gabungkan perubahan dari form dengan currentJsonNodes yang sudah ada marriage status changes
-          const finalJsonNodes = currentJsonNodes.map(existingNode => {
+          // Gabungkan perubahan dari form dengan currentJsonNodes
+          const finalJsonNodes = currentJsonNodes.map((existingNode) => {
             const updatedNode = args.updateNodesData.find((n: any) => n.id === existingNode.id);
             if (updatedNode) {
-              // Merge data dari form dengan marriage status yang sudah diubah
               return {
-                ...existingNode, // Marriage status dari currentJsonNodes
-                ...updatedNode,  // Data baru dari form
-                marriageStatuses: existingNode.marriageStatuses || updatedNode.marriageStatuses // Prioritaskan marriage status dari currentJsonNodes
+                ...existingNode,
+                ...updatedNode,
+                marriageStatuses: updatedNode.marriageStatuses || existingNode.marriageStatuses,
               };
             }
             return existingNode;
@@ -1147,16 +1323,13 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
           // Save updated tree to database
           try {
-            console.log('💾 Saving final JSON to database:', {
+            console.log("💾 Saving final JSON to database:", {
               treeId: dataTree.id,
               nodeCount: finalJsonNodes.length,
-              nodesWithMarriageStatus: finalJsonNodes.filter((n: any) => n.marriageStatuses).length
+              nodesWithMarriageStatus: finalJsonNodes.filter((n: any) => n.marriageStatuses).length,
             });
 
-            const { data: updateResult, error: dbError } = await supabase
-              .from("trees")
-              .update({ file: finalJsonNodes })
-              .eq("id", dataTree.id);
+            const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: finalJsonNodes }).eq("id", dataTree.id);
 
             if (dbError) {
               console.error("❌ Database error:", dbError);
@@ -1164,11 +1337,11 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
             } else {
               console.log("✅ Tree updated successfully in database:", updateResult);
               setPreviousJsonNodes(finalJsonNodes);
-              setCurrentJsonNodes(finalJsonNodes); // Update currentJsonNodes juga
+              setCurrentJsonNodes(finalJsonNodes);
 
               if (onUpdate) {
                 await onUpdate();
-                console.log('🔄 Parent component notified of update after node edit');
+                console.log("🔄 Parent component notified of update after node edit");
               }
             }
           } catch (error) {
@@ -1177,6 +1350,18 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           }
         })();
       }
+    });
+
+    treeRef.current.on("redraw", function () {
+      customizeDeceasedNodes();
+    });
+
+    treeRef.current.on("expcollclick", function () {
+      customizeDeceasedNodes();
+    });
+
+    treeRef.current.on("render", function () {
+      customizeDeceasedNodes();
     });
     return () => {
       // Cleanup
@@ -1190,22 +1375,9 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
   return (
     <>
-      <Dialog
-        status={dialogStatus}
-        id={treeMetadata.id}
-        name={treeMetadata.name}
-        description={treeMetadata.description}
-        handleDialogClose={handleDialogClose}
-        onUpdateSuccess={handleUpdateSuccess}
-      />
+      <Dialog status={dialogStatus} id={treeMetadata.id} name={treeMetadata.name} description={treeMetadata.description} handleDialogClose={handleDialogClose} onUpdateSuccess={handleUpdateSuccess} />
 
-      <ImageCropModal
-        isOpen={cropModal.isOpen}
-        imageSrc={cropModal.imageSrc}
-        position={cropModal.position}
-        onCancel={handleCropCancel}
-        onConfirm={handleCropConfirm}
-      />
+      <ImageCropModal isOpen={cropModal.isOpen} imageSrc={cropModal.imageSrc} position={cropModal.position} onCancel={handleCropCancel} onConfirm={handleCropConfirm} />
 
       <button
         onClick={handleSaveTree}
