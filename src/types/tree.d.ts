@@ -13,6 +13,11 @@ interface MarriageStatus {
   divorceDate?: string;
 }
 
+interface ChildStatus {
+  parentId: string;
+  status: "biological" | "adopted";
+}
+
 interface NodeData {
   id: string;
   pids?: string | string[] | number | number[];
@@ -29,6 +34,7 @@ interface NodeData {
   mid?: number;
   fid?: number;
   marriageStatuses?: MarriageStatus[];
+  childStatuses?: ChildStatus[];
 }
 
 export type { ITree, NodeData, MarriageStatus };

@@ -81,6 +81,49 @@ const updateMarriageStatus = (nodes: NodeData[], nodeId: string, partnerId: stri
   return nodes;
 };
 
+// Helper functions untuk child status
+const getChildStatus = (node: NodeData): "biological" | "adopted" => {
+  // Ambil status dari parent pertama yang ada, atau default biological
+  if (node.childStatuses && node.childStatuses.length > 0) {
+    return node.childStatuses[0].status;
+  }
+  return "biological";
+};
+
+const updateChildStatusForAllParents = (nodes: NodeData[], nodeId: string, status: "biological" | "adopted") => {
+  console.log("🔄 Updating child status for all parents:", {
+    nodeId,
+    newStatus: status,
+    timestamp: new Date().toISOString(),
+  });
+
+  const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
+
+  if (nodeIndex !== -1) {
+    const node = nodes[nodeIndex];
+    const parents = [];
+
+    // Kumpulkan semua parent ID
+    if (node.mid) parents.push(node.mid.toString());
+    if (node.fid) parents.push(node.fid.toString());
+
+    // Reset dan set ulang child status untuk semua parent
+    nodes[nodeIndex].childStatuses = parents.map(parentId => ({
+      parentId: parentId,
+      status: status
+    }));
+
+    console.log("✅ Child status updated for all parents:", {
+      nodeId,
+      parents,
+      status,
+      childStatuses: nodes[nodeIndex].childStatuses
+    });
+  }
+
+  return nodes;
+};
+
 interface FamilyTreeComponentProps {
   dataTree: ITree;
   onUpdate: () => void | Promise<void>; // tambahkan Promise<void> untuk async handling
@@ -200,13 +243,13 @@ FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" str
 FamilyTree.templates.myTemplate.field_0 =
   FamilyTree.templates.myTemplate_male.field_0 =
   FamilyTree.templates.myTemplate_female.field_0 =
-    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+  `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
 // Image styling - gambar diturunkan dan ukurannya disesuaikan
 FamilyTree.templates.myTemplate.img_0 =
   FamilyTree.templates.myTemplate_male.img_0 =
   FamilyTree.templates.myTemplate_female.img_0 =
-    `<use xlink:href="#base_img_0_stroke" />
+  `<use xlink:href="#base_img_0_stroke" />
             <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
             <g style="display:none" class="default-avatar">
@@ -404,6 +447,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     // { value: "married", text: "Married" },
     // { value: "divorced", text: "Divorced" },
   ]);
+  // const [childStatusOptions, setChildStatusOptions] = useState([]);
 
   let jsonNodes;
 
@@ -877,6 +921,35 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       };
     };
 
+    FamilyTree.elements.myChildStatus = function (data: any, editElement: any, minWidth: any, readOnly: any) {
+      const id = FamilyTree.elements.generateId();
+      const currentNodeId = data.id;
+
+      if (readOnly || (!data.mid && !data.fid)) {
+        return {
+          html: "",
+          id: id,
+          value: "",
+        };
+      }
+
+      // Dapatkan status saat ini
+      const currentStatus = getChildStatus(data);
+
+      return {
+        html: `<div class="child-status-field">
+              <label style="color: #CCC; padding-left: 8px; display: inline-block;">Child Status</label>
+              <select id="${id}" name="${id}" style="width: 100%; height: 40px; background: transparent; color: #CCC; border: 1px solid #ccc;"
+                      data-binding="childStatusSelect" onchange="handleChildStatusChange('${currentNodeId}', this.value)">
+                <option value="biological" ${currentStatus === 'biological' ? 'selected' : ''}>Biological Child</option>
+                <option value="adopted" ${currentStatus === 'adopted' ? 'selected' : ''}>Adopted Child</option>
+              </select>
+           </div>`,
+        id: id,
+        value: currentStatus,
+      };
+    };
+
     // Set global function untuk marriage status change
     // (window as any).handleMarriageStatusChange = async (nodeId: string, value: string) => {
     //   console.log('🎯 Marriage status change triggered:', { nodeId, value });
@@ -959,11 +1032,86 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       // }
     };
 
+    (window as any).handleChildStatusChange = (nodeId: string, status: string) => {
+      console.log("👶 Child status change triggered:", { nodeId, status });
+
+      if (!status) {
+        console.log("⚠️ No status provided, exiting...");
+        return;
+      }
+
+      // Update child status di currentJsonNodes state untuk semua parent
+      setCurrentJsonNodes((prevNodes) => {
+        const updatedNodes = updateChildStatusForAllParents([...prevNodes], nodeId, status as "biological" | "adopted");
+        console.log("Child status updated in currentJsonNodes:", updatedNodes);
+
+        // Update dataTree.file juga untuk sinkronisasi
+        dataTree.file = updatedNodes;
+
+        return updatedNodes;
+      });
+    };
+
     const el = document.getElementById("tree");
     if (!el) return;
 
     const importCSVHandler = () => {
       if (treeRef.current) treeRef.current.importCSV();
+    };
+
+    const exportCSVHandler = () => {
+      if (!treeRef.current) return;
+
+      // Get all nodes data
+      const nodes = treeRef.current.config.nodes || [];
+
+      // Define all possible CSV columns
+      const csvHeaders = [
+        'id', 'name', 'gender', 'birthDate', 'deathDate',
+        'phone', 'email', 'address', 'occupation', 'note',
+        'photo', 'mid', 'fid', 'pids'
+      ];
+
+      // Create CSV content
+      let csvContent = csvHeaders.join(',') + '\n';
+
+      nodes.forEach(node => {
+        const row = csvHeaders.map(header => {
+          let value = node[header];
+
+          // Handle empty values - replace with dash or empty string
+          if (value === undefined || value === null || value === '') {
+            value = '-'; // atau gunakan '' jika ingin kosong
+          }
+
+          // Handle arrays (like pids)
+          if (Array.isArray(value)) {
+            value = value.join(';'); // join multiple values with semicolon
+          }
+
+          // Escape commas and quotes in values
+          if (typeof value === 'string') {
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+              value = '"' + value.replace(/"/g, '""') + '"';
+            }
+          }
+
+          return value;
+        });
+
+        csvContent += row.join(',') + '\n';
+      });
+
+      // Create and download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `family_tree_${Date.now()}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     };
 
     treeRef.current = new FamilyTree(el, {
@@ -996,7 +1144,10 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         },
         pdf: { text: "Export PDF" },
         png: { text: "Export PNG" },
-        csv: { text: "Export CSV" },
+        csv: {
+          text: "Export CSV",
+          onClick: exportCSVHandler,
+        },
         logout: {
           text: "Logout",
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="grey" viewBox="0 0 256 256"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"></path></svg>`,
@@ -1038,6 +1189,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
             binding: "marriageStatusSelect",
             options: marriageStatusOptions,
           },
+          { type: "myChildStatus", label: "Child Status", binding: "childStatusSelect" },
           { type: "textbox", label: "Phone Number", binding: "phone" },
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
@@ -1065,15 +1217,13 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     treeRef.current.on("click", (sender: any, args: any) => {
       setIdNode(args.node.id);
 
-      // Panggil fungsi generate marriage options
+      // Hanya marriage status options yang perlu di-generate
       const partners = Array.isArray(args.node.pids) ? args.node.pids : [args.node.pids];
       const currentNodes = dataTree.file || [];
 
       const marriageStatusOptions = partners.flatMap((partnerId: string) => {
         const partner = currentNodes.find((n: any) => n.id === partnerId);
         if (!partner) return [];
-
-        // const currentStatus = getMarriageStatus(args.node, partnerId);
 
         return [
           {
@@ -1087,6 +1237,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         ];
       });
       setMarriageStatusOptions(marriageStatusOptions);
+
     });
 
     console.log("tesxtsfsdf", treeRef.current.config.nodes);
@@ -1099,7 +1250,6 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
       // Handle marriage link colors
       if (args.node && args.cnode) {
-        // Gunakan dataTree.file langsung
         const currentNodes = dataTree.file;
         if (currentNodes) {
           const nodeData = currentNodes.find((n: any) => n.id === args.node.id);
@@ -1115,13 +1265,43 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
               partnerId: args.cnode.id,
               marriageStatus,
               linkColor,
-              nodeData: nodeData.marriageStatuses,
-              timestamp: new Date().toISOString(),
             });
 
-            // Update warna garis
             args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
             args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+          }
+          // Check jika ini adalah garis parent-child
+          else if (nodeData && cnodeData) {
+            // Cek apakah nodeData adalah child dari cnodeData
+            if ((nodeData.mid && nodeData.mid.toString() === args.cnode.id) || (nodeData.fid && nodeData.fid.toString() === args.cnode.id)) {
+              const childStatus = getChildStatus(nodeData);
+              const linkColor = childStatus === "adopted" ? "#FFF986" : "#60EDF7";
+
+              console.log("👶 Rendering parent-child link:", {
+                childId: args.node.id,
+                parentId: args.cnode.id,
+                childStatus,
+                linkColor,
+              });
+
+              args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
+              args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+            }
+            // Cek apakah cnodeData adalah child dari nodeData
+            else if ((cnodeData.mid && cnodeData.mid.toString() === args.node.id) || (cnodeData.fid && cnodeData.fid.toString() === args.node.id)) {
+              const childStatus = getChildStatus(cnodeData);
+              const linkColor = childStatus === "adopted" ? "#FFF986" : "#60EDF7";
+
+              console.log("👶 Rendering parent-child link:", {
+                childId: args.cnode.id,
+                parentId: args.node.id,
+                childStatus,
+                linkColor,
+              });
+
+              args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
+              args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+            }
           }
         }
       }
@@ -1305,6 +1485,22 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
               } else {
                 console.warn(`⚠️ Partner node ${partnerId} not found`);
               }
+            }
+
+            // 👶 Child status handling
+            if (nodeData.childStatusSelect) {
+              const status = nodeData.childStatusSelect;
+              console.log(`👶 Updating child status for ${nodeData.id}: ${status}`);
+
+              // Update child status untuk semua parent
+              const parents = [];
+              if (nodeData.mid) parents.push(nodeData.mid.toString());
+              if (nodeData.fid) parents.push(nodeData.fid.toString());
+
+              args.updateNodesData[i].childStatuses = parents.map((parentId: string) => ({
+                parentId: parentId,
+                status: status
+              }));
             }
           }
 
