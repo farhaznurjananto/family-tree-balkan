@@ -80,6 +80,58 @@ export default class Tree extends Component<TreeProps, TreeState> {
             this.props.treeName !== nextProps.treeName;
     }
 
+    customizeDeceasedNodes = (): void => {
+        const allNodes = this.family?.config?.nodes ?? [];
+
+        // Loop melalui DOM nodes
+        const domNodes = document.querySelectorAll("[data-n-id]");
+        domNodes.forEach((domNode) => {
+            const nodeId = domNode.getAttribute("data-n-id");
+
+            // Cari data node yang sesuai dengan ID
+            const nodeData = allNodes.find((n: any) => n.id === nodeId);
+
+            if (nodeData && nodeData.deathDate && nodeData.deathDate.trim() !== "") {
+                // Node sudah meninggal, ubah styling
+                const rect = domNode.querySelector("rect");
+                const texts = domNode.querySelectorAll("text");
+                const images = domNode.querySelectorAll("image");
+
+                if (rect) {
+                    // Ubah background menjadi abu-abu
+                    rect.setAttribute("fill", "#9ca3af");
+                    // Tambah stroke putus-putus
+                    rect.setAttribute("stroke", "#6b7280");
+                    rect.setAttribute("stroke-width", "2");
+                    rect.setAttribute("stroke-dasharray", "5,5");
+                }
+
+                // Ubah opacity text menjadi sedikit transparan
+                texts.forEach((text) => {
+                    text.setAttribute("opacity", "0.8");
+                });
+
+                // Ubah opacity gambar menjadi sedikit transparan
+                images.forEach((img) => {
+                    img.setAttribute("opacity", "0.7");
+                });
+            }
+        });
+    }
+
+    getMarriageStatus = (node: NodeData, partnerId: string): "married" | "divorced" => {
+        const status = node.marriageStatuses?.find((ms) => ms.partnerId === partnerId);
+        return status?.status || "married";
+    }
+
+    getChildStatus = (node: NodeData): "biological" | "adopted" => {
+        // Ambil status dari parent pertama yang ada, atau default biological
+        if (node.childStatuses && node.childStatuses.length > 0) {
+            return node.childStatuses[0].status;
+        }
+        return "biological";
+    }
+
     componentDidMount(): void {
         // Set initial mobile state
         this.setState({ isMobile: this.checkIsMobile() });
@@ -91,41 +143,6 @@ export default class Tree extends Component<TreeProps, TreeState> {
             console.error('Div reference is null');
             return;
         }
-
-        // Add custom CSS for search bar positioning
-        // const style = document.createElement('style');
-        // style.textContent = `
-        //     .bft-search {
-        //         position: absolute !important;
-        //         top: 20px !important;
-        //         right: 20px !important;
-        //         left: auto !important;
-        //         z-index: 999 !important;
-        //         width: 200px !important;
-        //     }
-
-        //     @media screen and (max-width: 768px) {
-        //         .bft-search {
-        //             top: 70px !important;
-        //             right: 20px !important;
-        //             width: 160px !important;
-        //         }
-        //     }
-
-        //     .bft-search input {
-        //         background-color: rgba(15, 15, 17, 0.9) !important;
-        //         border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        //         border-radius: 8px !important;
-        //         color: #F8F8F8 !important;
-        //         padding: 8px 12px !important;
-        //         font-size: 14px !important;
-        //     }
-
-        //     .bft-search input::placeholder {
-        //         color: rgba(248, 248, 248, 0.6) !important;
-        //     }
-        // `;
-        // document.head.appendChild(style);
 
         // Template definitions remain the same
         FamilyTree.SEARCH_PLACEHOLDER = "CARI";
@@ -260,10 +277,67 @@ export default class Tree extends Component<TreeProps, TreeState> {
         });
 
 
-        this.family.on('render-link', function (sender: any, args: any) {
+        this.family.on('render-link', (sender: any, args: any) => {
             if (args.cnode.ppid != undefined) {
                 args.html += '<use xlink:href="#heart" x="' + args.p.xa + '" y="' + args.p.ya + '"/>';
             }
+
+            // Handle marriage link colors dan parent-child link colors
+            if (args.node && args.cnode) {
+                const currentNodes = this.props.nodes;
+                if (currentNodes) {
+                    const nodeData = currentNodes.find((n: any) => n.id === args.node.id);
+                    const cnodeData = currentNodes.find((n: any) => n.id === args.cnode.id);
+
+                    // Check jika ini adalah garis pernikahan (partner relationship)
+                    if (nodeData && cnodeData &&
+                        ((nodeData.pids && nodeData.pids.includes(args.cnode.id)) ||
+                            (cnodeData.pids && cnodeData.pids.includes(args.node.id)))) {
+
+                        const marriageStatus = this.getMarriageStatus(nodeData, args.cnode.id);
+                        const linkColor = marriageStatus === "divorced" ? "#FFC5BF" : "#C2A2F8";
+
+                        args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
+                        args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+                    }
+                    // Check jika ini adalah garis parent-child
+                    else if (nodeData && cnodeData) {
+                        // Cek apakah nodeData adalah child dari cnodeData
+                        if ((nodeData.mid && nodeData.mid.toString() === args.cnode.id) ||
+                            (nodeData.fid && nodeData.fid.toString() === args.cnode.id)) {
+
+                            const childStatus = this.getChildStatus(nodeData);
+                            const linkColor = childStatus === "adopted" ? "#FFF986" : "#60EDF7";
+
+                            args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
+                            args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+                        }
+                        // Cek apakah cnodeData adalah child dari nodeData
+                        else if ((cnodeData.mid && cnodeData.mid.toString() === args.node.id) ||
+                            (cnodeData.fid && cnodeData.fid.toString() === args.node.id)) {
+
+                            const childStatus = this.getChildStatus(cnodeData);
+                            const linkColor = childStatus === "adopted" ? "#FFF986" : "#60EDF7";
+
+                            args.html = args.html.replace(/stroke="[^"]*"/g, `stroke="${linkColor}"`);
+                            args.html = args.html.replace(/stroke-width="[^"]*"/g, `stroke-width="3"`);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Event handlers untuk customize deceased nodes
+        this.family.on("redraw", () => {
+            setTimeout(() => this.customizeDeceasedNodes(), 100);
+        });
+
+        this.family.on("expcollclick", () => {
+            setTimeout(() => this.customizeDeceasedNodes(), 100);
+        });
+
+        this.family.on("render", () => {
+            setTimeout(() => this.customizeDeceasedNodes(), 100);
         });
 
         // Event listener for node click
@@ -277,56 +351,6 @@ export default class Tree extends Component<TreeProps, TreeState> {
                 });
             }
         });
-
-        // Alternative event listener for mobile touch
-        // this.family.on('nodeclick', (sender: any, args: any) => {
-        //     if (args.node) {
-        //         const nodeData: NodeData = this.family.get(args.node.id);
-        //         console.log('Node touched:', nodeData); // Debug log
-        //         this.setState({
-        //             selectedNode: nodeData,
-        //             sidebarOpen: true
-        //         });
-        //     }
-        // });
-
-        // Add direct click handlers after render
-        // setTimeout(() => {
-        //     const nodes = this.divRef.current?.querySelectorAll('g[node-id]');
-        //     nodes?.forEach((node) => {
-        //         node.addEventListener('click', (e) => {
-        //             e.stopPropagation();
-        //             const nodeId = (node as Element).getAttribute('node-id');
-        //             if (nodeId) {
-        //                 const nodeData: NodeData = this.family.get(nodeId);
-        //                 if (nodeData) {
-        //                     console.log('Direct click on node:', nodeData);
-        //                     this.setState({
-        //                         selectedNode: nodeData,
-        //                         sidebarOpen: true
-        //                     });
-        //                 }
-        //             }
-        //         });
-
-        //         // Add touch handler for mobile
-        //         node.addEventListener('touchend', (e) => {
-        //             e.preventDefault();
-        //             e.stopPropagation();
-        //             const nodeId = (node as Element).getAttribute('node-id');
-        //             if (nodeId) {
-        //                 const nodeData: NodeData = this.family.get(nodeId);
-        //                 if (nodeData) {
-        //                     console.log('Touch on node:', nodeData);
-        //                     this.setState({
-        //                         selectedNode: nodeData,
-        //                         sidebarOpen: true
-        //                     });
-        //                 }
-        //             }
-        //         });
-        //     });
-        // }, 1000);
     }
 
     componentWillUnmount(): void {
