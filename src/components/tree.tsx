@@ -108,16 +108,16 @@ const updateChildStatusForAllParents = (nodes: NodeData[], nodeId: string, statu
     if (node.fid) parents.push(node.fid.toString());
 
     // Reset dan set ulang child status untuk semua parent
-    nodes[nodeIndex].childStatuses = parents.map(parentId => ({
+    nodes[nodeIndex].childStatuses = parents.map((parentId) => ({
       parentId: parentId,
-      status: status
+      status: status,
     }));
 
     console.log("✅ Child status updated for all parents:", {
       nodeId,
       parents,
       status,
-      childStatuses: nodes[nodeIndex].childStatuses
+      childStatuses: nodes[nodeIndex].childStatuses,
     });
   }
 
@@ -243,13 +243,13 @@ FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" str
 FamilyTree.templates.myTemplate.field_0 =
   FamilyTree.templates.myTemplate_male.field_0 =
   FamilyTree.templates.myTemplate_female.field_0 =
-  `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
 // Image styling - gambar diturunkan dan ukurannya disesuaikan
 FamilyTree.templates.myTemplate.img_0 =
   FamilyTree.templates.myTemplate_male.img_0 =
   FamilyTree.templates.myTemplate_female.img_0 =
-  `<use xlink:href="#base_img_0_stroke" />
+    `<use xlink:href="#base_img_0_stroke" />
             <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
             <g style="display:none" class="default-avatar">
@@ -937,14 +937,22 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       const currentStatus = getChildStatus(data);
 
       return {
-        html: `<div class="child-status-field">
-              <label style="color: #CCC; padding-left: 8px; display: inline-block;">Child Status</label>
-              <select id="${id}" name="${id}" style="width: 100%; height: 40px; background: transparent; color: #CCC; border: 1px solid #ccc;"
-                      data-binding="childStatusSelect" onchange="handleChildStatusChange('${currentNodeId}', this.value)">
-                <option value="biological" ${currentStatus === 'biological' ? 'selected' : ''}>Biological Child</option>
-                <option value="adopted" ${currentStatus === 'adopted' ? 'selected' : ''}>Adopted Child</option>
-              </select>
-           </div>`,
+        html: `<div style="position: relative; width: 100%; margin: 4px;">
+  <select id="${id}" name="${id}" required
+          style="width: 100%; height: 50px; background: #333333; color: #ccc; border: 1px solid #5B5B5B; border-radius: 6px; padding: 16px 10px 0 10px; font-size: 14px; outline: none; appearance: none;"
+          data-binding="childStatusSelect" 
+          onchange="handleChildStatusChange('${currentNodeId}', this.value)">
+    <option value="" disabled selected hidden></option>
+    <option value="biological" ${currentStatus === "biological" ? "selected" : ""}>Biological Child</option>
+    <option value="adopted" ${currentStatus === "adopted" ? "selected" : ""}>Adopted Child</option>
+  </select>
+
+  <label for="${id}"
+         style="position: absolute; left: 4px; top: -2px; font-size: 12px; color: #aaa; pointer-events: none; background: transparent; padding: 0 4px;">
+    Child Status
+  </label>
+</div>
+`,
         id: id,
         value: currentStatus,
       };
@@ -1066,32 +1074,28 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       const nodes = treeRef.current.config.nodes || [];
 
       // Define all possible CSV columns
-      const csvHeaders = [
-        'id', 'name', 'gender', 'birthDate', 'deathDate',
-        'phone', 'email', 'address', 'occupation', 'note',
-        'photo', 'mid', 'fid', 'pids'
-      ];
+      const csvHeaders = ["id", "name", "gender", "birthDate", "deathDate", "phone", "email", "address", "occupation", "note", "photo", "mid", "fid", "pids"];
 
       // Create CSV content
-      let csvContent = csvHeaders.join(',') + '\n';
+      let csvContent = csvHeaders.join(",") + "\n";
 
-      nodes.forEach(node => {
-        const row = csvHeaders.map(header => {
+      nodes.forEach((node) => {
+        const row = csvHeaders.map((header) => {
           let value = node[header];
 
           // Handle empty values - replace with dash or empty string
-          if (value === undefined || value === null || value === '') {
-            value = '-'; // atau gunakan '' jika ingin kosong
+          if (value === undefined || value === null || value === "") {
+            value = "-"; // atau gunakan '' jika ingin kosong
           }
 
           // Handle arrays (like pids)
           if (Array.isArray(value)) {
-            value = value.join(';'); // join multiple values with semicolon
+            value = value.join(";"); // join multiple values with semicolon
           }
 
           // Escape commas and quotes in values
-          if (typeof value === 'string') {
-            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          if (typeof value === "string") {
+            if (value.includes(",") || value.includes('"') || value.includes("\n")) {
               value = '"' + value.replace(/"/g, '""') + '"';
             }
           }
@@ -1099,16 +1103,16 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           return value;
         });
 
-        csvContent += row.join(',') + '\n';
+        csvContent += row.join(",") + "\n";
       });
 
       // Create and download CSV file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `family_tree_${Date.now()}.csv`);
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute("download", `family_tree_${Date.now()}.csv`);
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1183,19 +1187,22 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
               { value: "female", text: "Female" },
             ],
           },
-          {
-            type: "select",
-            label: "Marriage Status",
-            binding: "marriageStatusSelect",
-            options: marriageStatusOptions,
-          },
+          ...(marriageStatusOptions && marriageStatusOptions.length > 0
+            ? [
+                {
+                  type: "select",
+                  label: "Marriage Status",
+                  binding: "marriageStatusSelect",
+                  options: marriageStatusOptions,
+                },
+              ]
+            : []),
           { type: "myChildStatus", label: "Child Status", binding: "childStatusSelect" },
           { type: "textbox", label: "Phone Number", binding: "phone" },
           { type: "textbox", label: "Email Address", binding: "email" },
           { type: "textbox", label: "Address", binding: "address" },
           { type: "textbox", label: "Occupation", binding: "occupation" },
           { type: "myTextArea", label: "Note", binding: "note" },
-          // { type: "myMarriageStatus", label: "Marriage Status", binding: "marriageStatusSelect" },
           { type: "myInputFile", label: "Photo", binding: "photo" },
         ],
         buttons: {
@@ -1237,7 +1244,6 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
         ];
       });
       setMarriageStatusOptions(marriageStatusOptions);
-
     });
 
     console.log("tesxtsfsdf", treeRef.current.config.nodes);
@@ -1499,7 +1505,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
 
               args.updateNodesData[i].childStatuses = parents.map((parentId: string) => ({
                 parentId: parentId,
-                status: status
+                status: status,
               }));
             }
           }
