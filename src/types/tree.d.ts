@@ -5,6 +5,19 @@ interface ITree {
   file: json;
 }
 
+// Tambahkan interface untuk marriage status
+interface MarriageStatus {
+  partnerId: string;
+  status: "married" | "divorced";
+  marriageDate?: string;
+  divorceDate?: string;
+}
+
+interface ChildStatus {
+  parentId: string;
+  status: "biological" | "adopted";
+}
+
 interface NodeData {
   id: string;
   pids?: string | string[] | number | number[];
@@ -20,6 +33,8 @@ interface NodeData {
   note?: string;
   mid?: number;
   fid?: number;
+  marriageStatuses?: MarriageStatus[];
+  childStatuses?: ChildStatus[];
 }
 
-export type { ITree, NodeData };
+export type { ITree, NodeData, MarriageStatus };
