@@ -243,13 +243,13 @@ FamilyTree.templates.wife.node = `<rect x="0" y="0" height="{h}" width="{w}" str
 FamilyTree.templates.myTemplate.field_0 =
   FamilyTree.templates.myTemplate_male.field_0 =
   FamilyTree.templates.myTemplate_female.field_0 =
-    `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
+  `<text data-width="182" data-text-overflow="ellipsis"  style="font-size: 18px; font-weight: bold" fill="#4A4A4A" x="92" y="262" text-anchor="middle">{val}</text>`;
 
 // Image styling - gambar diturunkan dan ukurannya disesuaikan
 FamilyTree.templates.myTemplate.img_0 =
   FamilyTree.templates.myTemplate_male.img_0 =
   FamilyTree.templates.myTemplate_female.img_0 =
-    `<use xlink:href="#base_img_0_stroke" />
+  `<use xlink:href="#base_img_0_stroke" />
             <image preserveAspectRatio="xMidYMid slice" clip-path="url(#base_img_0)" xlink:href="{val}" x="8" y="30" width="168" height="210" 
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"></image>
             <g style="display:none" class="default-avatar">
@@ -468,7 +468,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
   });
 
   function customizeDeceasedNodes() {
-    const allNodes = treeRef.current?.config.nodes ?? [];
+    const allNodes = (treeRef.current?.config.nodes ?? []) as NodeData[];
 
     // Loop melalui DOM nodes, bukan data nodes
     const domNodes = document.querySelectorAll("[data-n-id]");
@@ -476,7 +476,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       const nodeId = domNode.getAttribute("data-n-id");
 
       // Cari data node yang sesuai dengan ID
-      const nodeData = allNodes.find((n) => n.id === nodeId);
+      const nodeData = allNodes.find((n: NodeData) => n.id === nodeId);
 
       if (nodeData && nodeData.deathDate && nodeData.deathDate.trim() !== "") {
         // Node sudah meninggal, ubah styling
@@ -781,12 +781,14 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       });
 
       // Bandingkan dengan data sebelumnya untuk mendeteksi node yang dihapus
-      const deletedNodes = previousJsonNodes.filter((oldNode: NodeData) => !jsonNodes.some((newNode: any) => newNode.id === oldNode.id));
+      const deletedNodes: NodeData[] = previousJsonNodes.filter((oldNode: NodeData) =>
+        !jsonNodes.some((newNode: any) => newNode.id === oldNode.id)
+      );
 
       if (deletedNodes.length > 0) {
         console.log(
           "🗑️ Nodes to be deleted:",
-          deletedNodes.map((n) => ({ id: n.id, name: n.name }))
+          deletedNodes.map((n: NodeData) => ({ id: n.id, name: n.name }))
         );
       }
 
@@ -1023,7 +1025,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       const [partnerId, status] = value.split("-");
 
       // Update marriage status di currentJsonNodes state
-      setCurrentJsonNodes((prevNodes) => {
+      setCurrentJsonNodes((prevNodes: NodeData[]) => {
         const updatedNodes = updateMarriageStatus([...prevNodes], nodeId, partnerId, status as "married" | "divorced");
         console.log("Marriage status updated in currentJsonNodes:", updatedNodes);
 
@@ -1049,7 +1051,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       }
 
       // Update child status di currentJsonNodes state untuk semua parent
-      setCurrentJsonNodes((prevNodes) => {
+      setCurrentJsonNodes((prevNodes: NodeData[]) => {
         const updatedNodes = updateChildStatusForAllParents([...prevNodes], nodeId, status as "biological" | "adopted");
         console.log("Child status updated in currentJsonNodes:", updatedNodes);
 
@@ -1070,8 +1072,8 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
     const exportCSVHandler = () => {
       if (!treeRef.current) return;
 
-      // Get all nodes data
-      const nodes = treeRef.current.config.nodes || [];
+      // Get all nodes data with proper typing
+      const nodes = (treeRef.current.config.nodes || []) as NodeData[];
 
       // Define all possible CSV columns
       const csvHeaders = ["id", "name", "gender", "birthDate", "deathDate", "phone", "email", "address", "occupation", "note", "photo", "mid", "fid", "pids"];
@@ -1079,9 +1081,9 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       // Create CSV content
       let csvContent = csvHeaders.join(",") + "\n";
 
-      nodes.forEach((node) => {
+      nodes.forEach((node: NodeData) => {
         const row = csvHeaders.map((header) => {
-          let value = node[header];
+          let value = (node as any)[header]; // Cast to any for dynamic property access
 
           // Handle empty values - replace with dash or empty string
           if (value === undefined || value === null || value === "") {
@@ -1160,7 +1162,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       },
       nodeMenu: {
         details: { text: "Details" },
-        edit: { text: "Edit" },
+        // edit: { text: "Edit" },
       },
       nodeTreeMenu: true,
       miniMap: true,
@@ -1189,13 +1191,13 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           },
           ...(marriageStatusOptions && marriageStatusOptions.length > 0
             ? [
-                {
-                  type: "select",
-                  label: "Marriage Status",
-                  binding: "marriageStatusSelect",
-                  options: marriageStatusOptions,
-                },
-              ]
+              {
+                type: "select",
+                label: "Marriage Status",
+                binding: "marriageStatusSelect",
+                options: marriageStatusOptions,
+              },
+            ]
             : []),
           { type: "myChildStatus", label: "Child Status", binding: "childStatusSelect" },
           { type: "textbox", label: "Phone Number", binding: "phone" },
@@ -1484,7 +1486,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
               updateMarriageStatus(args.updateNodesData[i], partnerId, status);
 
               // Update partner node (di updateNodesData atau currentJsonNodes)
-              const partnerNode = args.updateNodesData.find((n: any) => n.id === partnerId) || currentJsonNodes.find((n: any) => n.id === partnerId);
+              const partnerNode = args.updateNodesData.find((n: any) => n.id === partnerId) || currentJsonNodes.find((n: NodeData) => n.id === partnerId);
 
               if (partnerNode) {
                 updateMarriageStatus(partnerNode, nodeData.id, status);
@@ -1511,7 +1513,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
           }
 
           // Gabungkan perubahan dari form dengan currentJsonNodes
-          const finalJsonNodes = currentJsonNodes.map((existingNode) => {
+          const finalJsonNodes = currentJsonNodes.map((existingNode: NodeData) => {
             const updatedNode = args.updateNodesData.find((n: any) => n.id === existingNode.id);
             if (updatedNode) {
               return {
@@ -1528,7 +1530,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
             console.log("💾 Saving final JSON to database:", {
               treeId: dataTree.id,
               nodeCount: finalJsonNodes.length,
-              nodesWithMarriageStatus: finalJsonNodes.filter((n: any) => n.marriageStatuses).length,
+              nodesWithMarriageStatus: finalJsonNodes.filter((n: NodeData) => n.marriageStatuses).length,
             });
 
             const { data: updateResult, error: dbError } = await supabase.from("trees").update({ file: finalJsonNodes }).eq("id", dataTree.id);
