@@ -289,10 +289,23 @@ export default class Tree extends Component<TreeProps, TreeState> {
                     const nodeData = currentNodes.find((n: any) => n.id === args.node.id);
                     const cnodeData = currentNodes.find((n: any) => n.id === args.cnode.id);
 
+                    // Helper function to check if a value is in pids (handles both array and single value)
+                    const isPidIncluded = (pids: string | number | string[] | number[] | undefined, targetId: any): boolean => {
+                        if (!pids) return false;
+
+                        const targetIdStr = targetId?.toString();
+                        if (!targetIdStr) return false;
+
+                        if (Array.isArray(pids)) {
+                            return pids.some(pid => pid?.toString() === targetIdStr);
+                        }
+                        return pids.toString() === targetIdStr;
+                    };
+
                     // Check jika ini adalah garis pernikahan (partner relationship)
                     if (nodeData && cnodeData &&
-                        ((nodeData.pids && nodeData.pids.includes(args.cnode.id)) ||
-                            (cnodeData.pids && cnodeData.pids.includes(args.node.id)))) {
+                        (isPidIncluded(nodeData.pids, args.cnode.id) ||
+                            isPidIncluded(cnodeData.pids, args.node.id))) {
 
                         const marriageStatus = this.getMarriageStatus(nodeData, args.cnode.id);
                         const linkColor = marriageStatus === "divorced" ? "#FFC5BF" : "#C2A2F8";
@@ -574,7 +587,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                     {selectedNode.deathDate ? 'Meninggal' : 'Hidup'}
                                 </div>
 
-                                {/* Status anak kandung/angkat - hanya tampil jika bukan root/orang tua utama */}
+                                {/* Status anak kandung/angkat, tampil jika bukan orang tua atau root node */}
                                 {(selectedNode.fid || selectedNode.mid) && (
                                     <div style={{
                                         background: '#fff',
