@@ -551,6 +551,45 @@ export default class Tree extends Component<TreeProps, TreeState> {
                                 {selectedNode.name}
                             </div>
 
+                            {/* Tags */}
+                            <div style={{
+                                width: '100%',
+                                display: 'flex',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                gap: '12px',
+                                marginBottom: '12px',
+                                flexWrap: 'wrap'
+                            }}>
+                                {/* Status hidup/meninggal */}
+                                <div style={{
+                                    background: '#fff',
+                                    color: '#000',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontWeight: 'bold',
+                                    fontSize: isMobile ? '12px' : '14px',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    {selectedNode.deathDate ? 'Meninggal' : 'Hidup'}
+                                </div>
+
+                                {/* Status anak kandung/angkat - hanya tampil jika bukan root/orang tua utama */}
+                                {(selectedNode.fid || selectedNode.mid) && (
+                                    <div style={{
+                                        background: '#fff',
+                                        color: '#000',
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        fontWeight: 'bold',
+                                        fontSize: isMobile ? '12px' : '14px',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        {this.getChildStatus(selectedNode) === 'adopted' ? 'Anak Angkat' : 'Anak Kandung'}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Note */}
                             <div style={{
                                 textAlign: 'center',
