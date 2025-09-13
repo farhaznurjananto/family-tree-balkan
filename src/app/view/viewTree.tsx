@@ -80,44 +80,73 @@ export default class Tree extends Component<TreeProps, TreeState> {
             this.props.treeName !== nextProps.treeName;
     }
 
-    customizeDeceasedNodes = (): void => {
-        const allNodes = this.family?.config?.nodes ?? [];
+    // customizeDeceasedNodes = (): void => {
+    //     const allNodes = this.family?.config?.nodes ?? [];
 
-        // Loop melalui DOM nodes
-        const domNodes = document.querySelectorAll("[data-n-id]");
-        domNodes.forEach((domNode) => {
-            const nodeId = domNode.getAttribute("data-n-id");
+    //     // Loop melalui DOM nodes
+    //     const domNodes = document.querySelectorAll("[data-n-id]");
+    //     domNodes.forEach((domNode) => {
+    //         const nodeId = domNode.getAttribute("data-n-id");
 
-            // Cari data node yang sesuai dengan ID
-            const nodeData = allNodes.find((n: any) => n.id === nodeId);
+    //         // Cari data node yang sesuai dengan ID
+    //         const nodeData = allNodes.find((n: any) => n.id === nodeId);
 
-            if (nodeData && nodeData.deathDate && nodeData.deathDate.trim() !== "") {
-                // Node sudah meninggal, ubah styling
-                const rect = domNode.querySelector("rect");
-                const texts = domNode.querySelectorAll("text");
-                const images = domNode.querySelectorAll("image");
+    //         if (nodeData && nodeData.deathDate && nodeData.deathDate.trim() !== "") {
+    //             // Node sudah meninggal, ubah styling
+    //             const rect = domNode.querySelector("rect");
+    //             const texts = domNode.querySelectorAll("text");
+    //             const images = domNode.querySelectorAll("image");
 
-                if (rect) {
-                    // Ubah background menjadi abu-abu
-                    rect.setAttribute("fill", "#9ca3af");
-                    // Tambah stroke putus-putus
-                    rect.setAttribute("stroke", "#6b7280");
-                    rect.setAttribute("stroke-width", "2");
-                    rect.setAttribute("stroke-dasharray", "5,5");
-                }
+    //             if (rect) {
+    //                 // Ubah background menjadi abu-abu
+    //                 rect.setAttribute("fill", "#9ca3af");
+    //                 // Tambah stroke putus-putus
+    //                 rect.setAttribute("stroke", "#6b7280");
+    //                 rect.setAttribute("stroke-width", "2");
+    //                 rect.setAttribute("stroke-dasharray", "5,5");
+    //             }
 
-                // Ubah opacity text menjadi sedikit transparan
-                texts.forEach((text) => {
-                    text.setAttribute("opacity", "0.8");
-                });
+    //             // Ubah opacity text menjadi sedikit transparan
+    //             texts.forEach((text) => {
+    //                 text.setAttribute("opacity", "0.8");
+    //             });
 
-                // Ubah opacity gambar menjadi sedikit transparan
-                images.forEach((img) => {
-                    img.setAttribute("opacity", "0.7");
-                });
-            }
+    //             // Ubah opacity gambar menjadi sedikit transparan
+    //             images.forEach((img) => {
+    //                 img.setAttribute("opacity", "0.7");
+    //             });
+    //         }
+    //     });
+    // }
+
+    applyDeathNodeStyles(nodeGroup: HTMLElement) {
+        // Apply grayscale ke gambar
+        // const imageElem = nodeGroup.querySelector("image") as HTMLElement;
+        // if (imageElem) {
+        //   imageElem.style.filter = "grayscale(100%)";
+        // }
+
+        // Apply grayscale ke default avatar
+        const defaultAvatar = nodeGroup.querySelector(".default-avatar") as HTMLElement;
+        if (defaultAvatar) {
+            defaultAvatar.style.filter = "grayscale(100%)";
+        }
+
+        // Ubah warna background ke abu-abu dan border hitam
+        const nodeRect = nodeGroup.querySelector('rect[fill="#EAA64D"], rect[fill="#90D1CA"]') as HTMLElement;
+        if (nodeRect) {
+            nodeRect.setAttribute("fill", "#808080"); // abu-abu
+            nodeRect.setAttribute("stroke", "#000000");
+            nodeRect.setAttribute("stroke-width", "2");
+        }
+
+        // Ubah warna text menjadi putih
+        const textElements = nodeGroup.querySelectorAll("text");
+        textElements.forEach((textElem: any) => {
+            textElem.style.fill = "#FFFFFF"; // putih
         });
     }
+
 
     getMarriageStatus = (node: NodeData, partnerId: string): "married" | "divorced" => {
         const status = node.marriageStatuses?.find((ms) => ms.partnerId === partnerId);
@@ -254,7 +283,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
             miniMap: true,
             toolbar: {
                 zoom: true,
-                fit: true,
+                // fit: true,
                 expandAll: true,
             },
             nodeMenu: {
@@ -340,18 +369,19 @@ export default class Tree extends Component<TreeProps, TreeState> {
             }
         });
 
-        // Event handlers untuk customize deceased nodes
-        this.family.on("redraw", () => {
-            setTimeout(() => this.customizeDeceasedNodes(), 100);
+        this.family.on("redraw", (sender: any, args: any) => {
+            const allNodes = this.family.config.nodes;
+
+            allNodes.forEach((node: any) => {
+                if (node.deathDate) {
+                    const nodeGroup = document.querySelector(`g[data-n-id="${node.id}"]`) as HTMLElement;
+                    if (nodeGroup) {
+                        this.applyDeathNodeStyles(nodeGroup);
+                    }
+                }
+            });
         });
 
-        this.family.on("expcollclick", () => {
-            setTimeout(() => this.customizeDeceasedNodes(), 100);
-        });
-
-        this.family.on("render", () => {
-            setTimeout(() => this.customizeDeceasedNodes(), 100);
-        });
 
         // Event listener for node click
         this.family.on('click', (sender: any, args: any) => {
