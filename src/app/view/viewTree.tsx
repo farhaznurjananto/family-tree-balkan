@@ -283,7 +283,7 @@ export default class Tree extends Component<TreeProps, TreeState> {
             miniMap: true,
             toolbar: {
                 zoom: true,
-                fit: true,
+                // fit: true,
                 expandAll: true,
             },
             nodeMenu: {

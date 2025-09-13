@@ -1168,7 +1168,7 @@ export default function Tree({ dataTree, onUpdate }: FamilyTreeComponentProps) {
       miniMap: true,
       toolbar: {
         zoom: true,
-        fit: true,
+        // fit: true,
         expandAll: true,
       },
       undoRedoStorageName: "myStorageName",
